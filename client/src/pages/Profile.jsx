@@ -21,6 +21,12 @@ import {
   FiCalendar,
   FiSettings,
   FiHelpCircle,
+  FiInfo,
+  FiAlertCircle,
+  FiLogOut,
+  FiActivity,
+  FiBell,
+  FiStar,
 } from "react-icons/fi"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -42,12 +48,21 @@ const Profile = () => {
   const [editMode, setEditMode] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [originalUserInfo, setOriginalUserInfo] = useState({})
+  const [showSuccessMessage, setShowSuccessMessage] = useState(false)
   const navigate = useNavigate()
   const fileInputRef = useRef(null)
+  const profileSectionRef = useRef(null)
 
   useEffect(() => {
     fetchUserProfile()
   }, [])
+
+  // Scroll to profile section when tab changes
+  useEffect(() => {
+    if (profileSectionRef.current) {
+      profileSectionRef.current.scrollIntoView({ behavior: "smooth", block: "start" })
+    }
+  }, [activeTab])
 
   const fetchUserProfile = async () => {
     try {
@@ -209,7 +224,9 @@ const Profile = () => {
       )
 
       if (response.data.success) {
-        toast.success("Cập nhật thông tin thành công")
+        setShowSuccessMessage(true)
+        setTimeout(() => setShowSuccessMessage(false), 3000)
+
         const currentUser = JSON.parse(localStorage.getItem("user"))
         localStorage.setItem(
           "user",
@@ -274,55 +291,73 @@ const Profile = () => {
           animate={{ opacity: 1, y: 0 }}
           className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
         >
+          {/* Success Message */}
+          <AnimatePresence>
+            {showSuccessMessage && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-green-100 border-l-4 border-green-500 text-green-700 p-4 rounded-lg shadow-lg flex items-center"
+                style={{ maxWidth: "90%" }}
+              >
+                <FiCheckCircle className="text-green-500 mr-3 flex-shrink-0" />
+                <span>Thông tin đã được cập nhật thành công!</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Profile Header */}
           <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-gray-100 mb-8">
-            <div className="relative h-60 sm:h-80 bg-gradient-to-r from-sky-500 via-sky-600 to-sky-700 overflow-hidden">
+            <div className="relative h-60 sm:h-72 bg-gradient-to-r from-sky-500 via-sky-600 to-sky-700 overflow-hidden">
               {/* Decorative Elements */}
               <div className="absolute inset-0">
-                <svg
-                  className="absolute left-0 top-0 h-full w-full"
-                  viewBox="0 0 800 800"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <defs>
-                    <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                      <stop offset="0%" stopColor="#ffffff" stopOpacity="0.05" />
-                      <stop offset="100%" stopColor="#ffffff" stopOpacity="0.1" />
-                    </linearGradient>
-                  </defs>
-                  <path d="M 0 50 Q 400 0 800 50 L 800 0 L 0 0 Z" fill="url(#gradient)" />
-                  <path d="M 0 400 Q 400 350 800 400 L 800 0 L 0 0 Z" fill="url(#gradient)" opacity="0.5" />
-                </svg>
-                <div className="absolute right-0 bottom-0">
-                  <svg width="300" height="300" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-                    <path
-                      fill="rgba(255, 255, 255, 0.05)"
-                      d="M45.3,-76.2C59.9,-69.2,73.5,-59.3,81.1,-45.6C88.8,-31.9,90.5,-14.3,88.1,2.4C85.7,19,79.2,34.8,69.6,48.5C60,62.2,47.3,73.8,32.6,78.5C17.9,83.2,1.1,81,-14.3,76.5C-29.7,72,-43.7,65.2,-55.8,55.1C-67.9,45,-78.1,31.6,-82.6,16.2C-87.1,0.8,-85.9,-16.6,-79.2,-31.1C-72.5,-45.6,-60.3,-57.2,-46.2,-64.4C-32.1,-71.6,-16.1,-74.4,-0.2,-74.1C15.7,-73.8,30.7,-83.2,45.3,-76.2Z"
-                      transform="translate(100 100)"
-                    />
-                  </svg>
+                <div className="absolute inset-0 opacity-20">
+                  <div className="absolute top-0 left-0 w-full h-full">
+                    {[...Array(5)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="absolute rounded-full bg-white opacity-10"
+                        style={{
+                          width: `${Math.random() * 300 + 100}px`,
+                          height: `${Math.random() * 300 + 100}px`,
+                          top: `${Math.random() * 100}%`,
+                          left: `${Math.random() * 100}%`,
+                          animation: `float ${Math.random() * 20 + 20}s infinite ease-in-out`,
+                        }}
+                      />
+                    ))}
+                  </div>
                 </div>
+                <svg
+                  className="absolute left-0 bottom-0 h-16 w-full"
+                  viewBox="0 0 1440 80"
+                  xmlns="http://www.w3.org/2000/svg"
+                  preserveAspectRatio="none"
+                >
+                  <path d="M0,64 C288,96 576,0 864,64 C1152,128 1440,32 1440,64 L1440,80 L0,80 Z" fill="white"></path>
+                </svg>
               </div>
 
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/20 to-transparent"></div>
 
               {/* Profile Info Overlay */}
-              <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8 text-white">
+              <div className="absolute bottom-6 left-0 right-0 px-6 sm:px-8 text-white">
                 <div className="flex flex-col md:flex-row md:items-end gap-6">
                   {/* Avatar Upload Section */}
                   <div className="relative group">
                     <div
                       onClick={handleImageClick}
-                      className="w-28 h-28 sm:w-36 sm:h-36 rounded-2xl bg-white p-1 shadow-lg cursor-pointer
+                      className="w-28 h-28 sm:w-36 sm:h-36 rounded-full bg-white p-1 shadow-lg cursor-pointer
                         transform transition-all duration-300 group-hover:scale-105 group-hover:shadow-xl"
                     >
                       <img
                         src={userInfo.avatar || "/placeholder.svg"}
                         alt="Profile"
-                        className="w-full h-full object-cover rounded-xl"
+                        className="w-full h-full object-cover rounded-full"
                       />
                       <div
-                        className="absolute inset-0 bg-black/50 rounded-xl opacity-0 group-hover:opacity-100
+                        className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100
                         transition-all duration-300 flex flex-col items-center justify-center space-y-1"
                       >
                         <FiCamera className="w-6 h-6 text-white" />
@@ -331,7 +366,7 @@ const Profile = () => {
 
                       {/* Upload Progress Indicator */}
                       {uploadProgress > 0 && (
-                        <div className="absolute inset-0 flex items-center justify-center rounded-xl overflow-hidden">
+                        <div className="absolute inset-0 flex items-center justify-center rounded-full overflow-hidden">
                           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm"></div>
                           <div className="z-10 flex flex-col items-center">
                             <svg className="w-12 h-12" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
@@ -399,8 +434,8 @@ const Profile = () => {
                       type="button"
                       onClick={() => setEditMode(!editMode)}
                       className={`px-4 py-2 rounded-full flex items-center gap-2 transition-all ${editMode
-                          ? "bg-white text-sky-600 hover:bg-gray-100"
-                          : "bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm"
+                        ? "bg-white text-sky-600 hover:bg-gray-100"
+                        : "bg-white/20 hover:bg-white/30 text-white backdrop-blur-sm"
                         }`}
                     >
                       {editMode ? (
@@ -421,13 +456,13 @@ const Profile = () => {
             </div>
 
             {/* Tabs Navigation */}
-            <div className="border-b border-gray-200">
+            <div ref={profileSectionRef} className="border-b border-gray-200 sticky top-0 bg-white z-30 shadow-sm">
               <div className="px-6 sm:px-8 flex overflow-x-auto hide-scrollbar">
                 <button
                   onClick={() => setActiveTab("profile")}
                   className={`py-4 px-4 font-medium text-sm border-b-2 transition-all whitespace-nowrap ${activeTab === "profile"
-                      ? "border-sky-500 text-sky-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    ? "border-sky-500 text-sky-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                     }`}
                 >
                   <FiUser className="inline-block mr-2" />
@@ -436,32 +471,12 @@ const Profile = () => {
                 <button
                   onClick={() => setActiveTab("security")}
                   className={`py-4 px-4 font-medium text-sm border-b-2 transition-all whitespace-nowrap ${activeTab === "security"
-                      ? "border-sky-500 text-sky-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    ? "border-sky-500 text-sky-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                     }`}
                 >
                   <FiLock className="inline-block mr-2" />
                   Bảo mật
-                </button>
-                <button
-                  onClick={() => setActiveTab("settings")}
-                  className={`py-4 px-4 font-medium text-sm border-b-2 transition-all whitespace-nowrap ${activeTab === "settings"
-                      ? "border-sky-500 text-sky-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                    }`}
-                >
-                  <FiSettings className="inline-block mr-2" />
-                  Cài đặt
-                </button>
-                <button
-                  onClick={() => setActiveTab("help")}
-                  className={`py-4 px-4 font-medium text-sm border-b-2 transition-all whitespace-nowrap ${activeTab === "help"
-                      ? "border-sky-500 text-sky-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                    }`}
-                >
-                  <FiHelpCircle className="inline-block mr-2" />
-                  Trợ giúp
                 </button>
               </div>
             </div>
@@ -481,9 +496,11 @@ const Profile = () => {
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         {/* Basic Info Section */}
                         <div className="space-y-6">
-                          <div className="bg-gray-50 p-6 rounded-xl">
+                          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
                             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                              <FiUser className="w-5 h-5 mr-2 text-sky-500" />
+                              <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center mr-3">
+                                <FiUser className="w-4 h-4 text-sky-600" />
+                              </div>
                               Thông tin cơ bản
                             </h3>
                             <div className="space-y-4">
@@ -560,9 +577,11 @@ const Profile = () => {
                           </div>
 
                           {/* Activity Info */}
-                          <div className="bg-gray-50 p-6 rounded-xl">
+                          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
                             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                              <FiClock className="w-5 h-5 mr-2 text-sky-500" />
+                              <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center mr-3">
+                                <FiActivity className="w-4 h-4 text-sky-600" />
+                              </div>
                               Hoạt động
                             </h3>
                             <div className="space-y-4">
@@ -582,9 +601,10 @@ const Profile = () => {
                               </div>
                               <div className="flex justify-between items-center py-2">
                                 <span className="text-gray-600">Trạng thái</span>
-                                <span className="px-2 py-1 bg-green-100 text-green-800 rounded-full text-xs font-medium">
-                                  Đang hoạt động
-                                </span>
+                                <div className="flex items-center">
+                                  <span className="w-2 h-2 bg-green-500 rounded-full mr-2 animate-pulse"></span>
+                                  <span className="text-green-600 font-medium">Đang hoạt động</span>
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -592,9 +612,11 @@ const Profile = () => {
 
                         {/* Contact Info Section */}
                         <div className="space-y-6">
-                          <div className="bg-gray-50 p-6 rounded-xl">
+                          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
                             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                              <FiPhone className="w-5 h-5 mr-2 text-sky-500" />
+                              <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center mr-3">
+                                <FiPhone className="w-4 h-4 text-sky-600" />
+                              </div>
                               Thông tin liên hệ
                             </h3>
                             <div className="space-y-4">
@@ -633,13 +655,15 @@ const Profile = () => {
                           </div>
 
                           {/* Verification Status */}
-                          <div className="bg-sky-50 p-6 rounded-xl border border-sky-100">
+                          <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
                             <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                              <FiCheckCircle className="w-5 h-5 mr-2 text-sky-500" />
+                              <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center mr-3">
+                                <FiCheckCircle className="w-4 h-4 text-sky-600" />
+                              </div>
                               Trạng thái xác thực
                             </h3>
                             <div className="space-y-4">
-                              <div className="flex items-center justify-between">
+                              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                 <div className="flex items-center">
                                   <FiMail className="w-5 h-5 mr-3 text-sky-500" />
                                   <span className="text-gray-700">Email</span>
@@ -648,7 +672,7 @@ const Profile = () => {
                                   Đã xác thực
                                 </span>
                               </div>
-                              <div className="flex items-center justify-between">
+                              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                 <div className="flex items-center">
                                   <FiPhone className="w-5 h-5 mr-3 text-sky-500" />
                                   <span className="text-gray-700">Số điện thoại</span>
@@ -660,18 +684,21 @@ const Profile = () => {
                             </div>
 
                             {!userInfo.phone && (
-                              <div className="mt-4 p-3 bg-white rounded-lg border border-sky-100">
-                                <p className="text-sm text-gray-600">
-                                  Vui lòng cập nhật số điện thoại để xác thực tài khoản của bạn.
-                                </p>
+                              <div className="mt-4 p-3 bg-white rounded-lg border border-yellow-200 bg-yellow-50">
+                                <div className="flex">
+                                  <FiAlertCircle className="text-yellow-500 mt-0.5 mr-2 flex-shrink-0" />
+                                  <p className="text-sm text-yellow-700">
+                                    Vui lòng cập nhật số điện thoại để xác thực tài khoản của bạn.
+                                  </p>
+                                </div>
                               </div>
                             )}
                           </div>
 
                           {/* Last Updated Info */}
-                          <div className="bg-sky-50 p-4 rounded-xl border border-sky-100">
-                            <p className="text-sm text-sky-600 flex items-center">
-                              <FiClock className="mr-2" />
+                          <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                            <p className="text-sm text-gray-600 flex items-center">
+                              <FiClock className="mr-2 text-sky-500" />
                               Cập nhật lần cuối: {new Date().toLocaleDateString("vi-VN")}
                             </p>
                           </div>
@@ -696,7 +723,10 @@ const Profile = () => {
                             className={`w-full sm:w-auto px-8 py-3 bg-gradient-to-r from-sky-600 to-sky-700 text-white
                               rounded-xl transition-all duration-300
                               disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2
-                              ${hasChanges() ? "hover:from-sky-700 hover:to-sky-800 transform hover:scale-105 hover:shadow-lg" : ""}`}
+                              ${hasChanges()
+                                ? "hover:from-sky-700 hover:to-sky-800 transform hover:scale-105 hover:shadow-lg"
+                                : ""
+                              }`}
                           >
                             {saving ? (
                               <>
@@ -716,123 +746,46 @@ const Profile = () => {
                   )}
 
                   {activeTab === "security" && (
-                    <div className="bg-gray-50 p-6 rounded-xl">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                        <FiLock className="w-5 h-5 mr-2 text-sky-500" />
-                        Bảo mật tài khoản
-                      </h3>
-                      <p className="text-gray-600 mb-6">Quản lý các thiết lập bảo mật cho tài khoản của bạn.</p>
-
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-center p-4 bg-white rounded-lg border border-gray-200">
-                          <div>
-                            <h4 className="font-medium text-gray-900">Đổi mật khẩu</h4>
-                            <p className="text-sm text-gray-600">Cập nhật mật khẩu định kỳ để bảo vệ tài khoản</p>
+                    <div className="space-y-6">
+                      <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                          <div className="w-8 h-8 rounded-full bg-sky-100 flex items-center justify-center mr-3">
+                            <FiLock className="w-4 h-4 text-sky-600" />
                           </div>
-                          <button className="px-4 py-2 bg-sky-100 text-sky-700 rounded-lg hover:bg-sky-200 transition-colors">
-                            Thay đổi
-                          </button>
-                        </div>
+                          Bảo mật tài khoản
+                        </h3>
+                        <p className="text-gray-600 mb-6">Quản lý các thiết lập bảo mật cho tài khoản của bạn.</p>
 
-                        <div className="flex justify-between items-center p-4 bg-white rounded-lg border border-gray-200">
-                          <div>
-                            <h4 className="font-medium text-gray-900">Xác thực hai yếu tố</h4>
-                            <p className="text-sm text-gray-600">Tăng cường bảo mật với xác thực hai yếu tố</p>
-                          </div>
-                          <button className="px-4 py-2 bg-sky-100 text-sky-700 rounded-lg hover:bg-sky-200 transition-colors">
-                            Thiết lập
-                          </button>
-                        </div>
-
-                        <div className="flex justify-between items-center p-4 bg-white rounded-lg border border-gray-200">
-                          <div>
-                            <h4 className="font-medium text-gray-900">Phiên đăng nhập</h4>
-                            <p className="text-sm text-gray-600">Quản lý các thiết bị đã đăng nhập</p>
-                          </div>
-                          <button className="px-4 py-2 bg-sky-100 text-sky-700 rounded-lg hover:bg-sky-200 transition-colors">
-                            Xem
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === "settings" && (
-                    <div className="bg-gray-50 p-6 rounded-xl">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                        <FiSettings className="w-5 h-5 mr-2 text-sky-500" />
-                        Cài đặt hệ thống
-                      </h3>
-                      <p className="text-gray-600 mb-6">Tùy chỉnh trải nghiệm sử dụng hệ thống của bạn.</p>
-
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-center p-4 bg-white rounded-lg border border-gray-200">
-                          <div>
-                            <h4 className="font-medium text-gray-900">Ngôn ngữ</h4>
-                            <p className="text-sm text-gray-600">Thay đổi ngôn ngữ hiển thị</p>
-                          </div>
-                          <select className="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg">
-                            <option>Tiếng Việt</option>
-                            <option>English</option>
-                          </select>
-                        </div>
-
-                        <div className="flex justify-between items-center p-4 bg-white rounded-lg border border-gray-200">
-                          <div>
-                            <h4 className="font-medium text-gray-900">Thông báo</h4>
-                            <p className="text-sm text-gray-600">Quản lý cài đặt thông báo</p>
-                          </div>
-                          <button className="px-4 py-2 bg-sky-100 text-sky-700 rounded-lg hover:bg-sky-200 transition-colors">
-                            Tùy chỉnh
-                          </button>
-                        </div>
-
-                        <div className="flex justify-between items-center p-4 bg-white rounded-lg border border-gray-200">
-                          <div>
-                            <h4 className="font-medium text-gray-900">Giao diện</h4>
-                            <p className="text-sm text-gray-600">Chọn chế độ sáng hoặc tối</p>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <button className="p-2 bg-white border border-gray-200 rounded-lg shadow-sm">☀️</button>
-                            <button className="p-2 bg-gray-800 border border-gray-700 rounded-lg shadow-sm">🌙</button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {activeTab === "help" && (
-                    <div className="bg-gray-50 p-6 rounded-xl">
-                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center">
-                        <FiHelpCircle className="w-5 h-5 mr-2 text-sky-500" />
-                        Trợ giúp & Hỗ trợ
-                      </h3>
-                      <p className="text-gray-600 mb-6">
-                        Tìm câu trả lời cho các câu hỏi của bạn hoặc liên hệ với đội ngũ hỗ trợ.
-                      </p>
-
-                      <div className="space-y-4">
-                        <div className="p-4 bg-white rounded-lg border border-gray-200">
-                          <h4 className="font-medium text-gray-900 mb-2">Câu hỏi thường gặp</h4>
-                          <div className="space-y-3">
-                            <div className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
-                              <p className="text-gray-800">Làm thế nào để cập nhật thông tin cá nhân?</p>
+                        <div className="space-y-4">
+                          <div className="flex justify-between items-center p-4 bg-white rounded-lg border border-gray-200 hover:border-sky-200 hover:shadow-sm transition-all">
+                            <div>
+                              <h4 className="font-medium text-gray-900">Đổi mật khẩu</h4>
+                              <p className="text-sm text-gray-600">Cập nhật mật khẩu định kỳ để bảo vệ tài khoản</p>
                             </div>
-                            <div className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
-                              <p className="text-gray-800">Tôi quên mật khẩu, phải làm sao?</p>
-                            </div>
-                            <div className="p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer">
-                              <p className="text-gray-800">Làm thế nào để theo dõi đơn hàng?</p>
-                            </div>
+                            <button className="px-4 py-2 bg-sky-100 text-sky-700 rounded-lg hover:bg-sky-200 transition-colors">
+                              Thay đổi
+                            </button>
                           </div>
-                        </div>
 
-                        <div className="p-4 bg-white rounded-lg border border-gray-200">
-                          <h4 className="font-medium text-gray-900 mb-2">Liên hệ hỗ trợ</h4>
-                          <p className="text-gray-600 mb-4">Đội ngũ hỗ trợ của chúng tôi luôn sẵn sàng giúp đỡ bạn.</p>
-                          <button className="w-full py-3 bg-gradient-to-r from-sky-600 to-sky-700 text-white rounded-lg hover:from-sky-700 hover:to-sky-800 transition-all">
-                            Gửi yêu cầu hỗ trợ
-                          </button>
+                          <div className="flex justify-between items-center p-4 bg-white rounded-lg border border-gray-200 hover:border-sky-200 hover:shadow-sm transition-all">
+                            <div>
+                              <h4 className="font-medium text-gray-900">Xác thực hai yếu tố</h4>
+                              <p className="text-sm text-gray-600">Tăng cường bảo mật với xác thực hai yếu tố</p>
+                            </div>
+                            <button className="px-4 py-2 bg-sky-100 text-sky-700 rounded-lg hover:bg-sky-200 transition-colors">
+                              Thiết lập
+                            </button>
+                          </div>
+
+                          <div className="flex justify-between items-center p-4 bg-white rounded-lg border border-gray-200 hover:border-sky-200 hover:shadow-sm transition-all">
+                            <div>
+                              <h4 className="font-medium text-gray-900">Phiên đăng nhập</h4>
+                              <p className="text-sm text-gray-600">Quản lý các thiết bị đã đăng nhập</p>
+                            </div>
+                            <button className="px-4 py-2 bg-sky-100 text-sky-700 rounded-lg hover:bg-sky-200 transition-colors">
+                              Xem
+                            </button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -857,7 +810,7 @@ const Profile = () => {
         </motion.div>
       )}
 
-      {/* Add CSS for hiding scrollbar */}
+      {/* Add CSS for animations and styling */}
       <style jsx>{`
         .hide-scrollbar::-webkit-scrollbar {
           display: none;
@@ -867,8 +820,16 @@ const Profile = () => {
           scrollbar-width: none;
         }
         
-        .bg-pattern {
-          background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fillRule='evenodd'%3E%3Cg fill='%23ffffff' fillOpacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+        @keyframes float {
+          0% {
+            transform: translateY(0px) translateX(0px);
+          }
+          50% {
+            transform: translateY(-20px) translateX(10px);
+          }
+          100% {
+            transform: translateY(0px) translateX(0px);
+          }
         }
       `}</style>
     </div>
@@ -881,12 +842,12 @@ const LoadingState = () => (
     <div className="bg-white rounded-3xl shadow-xl overflow-hidden">
       <div className="animate-pulse">
         {/* Header Skeleton */}
-        <div className="h-60 bg-gray-200" />
+        <div className="h-60 bg-gradient-to-r from-gray-200 to-gray-300" />
 
         {/* Avatar Skeleton */}
         <div className="relative px-8">
           <div className="absolute -top-16 flex items-end space-x-4">
-            <div className="w-36 h-36 rounded-xl bg-gray-300" />
+            <div className="w-36 h-36 rounded-full bg-gray-300" />
             <div className="pb-4 space-y-2">
               <div className="h-8 w-48 bg-gray-300 rounded" />
               <div className="h-4 w-24 bg-gray-300 rounded" />
