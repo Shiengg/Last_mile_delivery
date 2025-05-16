@@ -1,0 +1,35 @@
+name: Auto Create Pull Request
+
+on:
+  push:
+    branches:
+      - 'feature/**'
+      - 'fix/**'
+      - 'chore/**'
+
+jobs:
+  auto-create-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Create Pull Request
+        uses: repo-sync/pull-request@v2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          destination_branch: "main"
+          pr_title: "feat: ${{ github.ref_name }}"
+          pr_body: |
+            ## Changes
+            Branch: ${{ github.ref_name }}
+            
+            Automatically created PR from ${{ github.ref_name }} to main
+            
+            ## Checklist
+            - [ ] Code follows the style guidelines
+            - [ ] Tests passed
+            - [ ] Documentation updated
+          pr_draft: false
+          pr_allow_empty: false 
