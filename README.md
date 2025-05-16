@@ -23,7 +23,7 @@
 - Giảng viên: Tên giảng viên
 
 ## 📜 Giấy phép
-© 2024 University of Information Technology (VNUHCM-UIT)
+© 2024 University of Information Technology (VNUHCM-UIT)ff
 
 ---
 *Developed with ❤️ by Team 48 - UIT*
