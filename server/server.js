@@ -17,6 +17,11 @@ const districtRoutes = require('./routes/districtRoutes');
 const wardRoutes = require('./routes/wardRoutes');
 const routeRoutes = require('./routes/routeRoutes');
 const customerRoutes = require('./routes/customerRoutes');
+const productRoutes = require('./routes/productRoutes');
+const orderRoutes = require('./routes/orderRoutes');
+const orderItemRoutes = require('./routes/orderItemRoutes');
+const warehouseRoutes = require('./routes/warehouseRoutes');
+
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -49,6 +54,10 @@ app.use('/api/districts', districtRoutes);
 app.use('/api/wards', wardRoutes);
 app.use('/api/routes', routeRoutes);
 app.use('/api/customer', customerRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/orders/:orderMongoId/items', orderItemRoutes);
+app.use('/api/warehouses', warehouseRoutes);
 
 // Test route
 app.get('/', (req, res) => {
@@ -84,6 +93,7 @@ const startServer = async () => {
         console.log('WARDS routes: /api/wards');
         console.log('ROUTES routes: /api/routes');
         console.log('CUSTOMER routes: /api/customer');
+
 
         // Start server
         app.listen(PORT, () => {
