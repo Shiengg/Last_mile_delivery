@@ -18,7 +18,7 @@ const wardRoutes = require('./routes/wardRoutes');
 const routeRoutes = require('./routes/routeRoutes');
 const customerRoutes = require('./routes/customerRoutes');
 const productRoutes = require('./routes/productRoutes');
-const orderRoutes = require('./routes/orderRoutes');
+const orderRoutes = require('./routes/api/orders');
 const orderItemRoutes = require('./routes/orderItemRoutes');
 const warehouseRoutes = require('./routes/warehouseRoutes');
 
@@ -28,7 +28,7 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(cors({
-    origin: 'http://localhost:3000', // URL của frontend
+    origin: ['http://localhost:3000', 'http://localhost:5173'], // URLs của frontend
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
