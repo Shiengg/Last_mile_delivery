@@ -64,13 +64,11 @@ const shopSchema = new mongoose.Schema({
 });
 
 // Pre-save middleware
-shopSchema.pre('save', async function(next) {
+shopSchema.pre('save', async function (next) {
     try {
-        const Shop = mongoose.model('Shop');
-
         // Chỉ tạo shop_id cho document mới
         if (this.isNew && !this.shop_id) {
-            const lastShop = await Shop.findOne({
+            const lastShop = await this.constructor.findOne({
                 shop_id: new RegExp(`^${this.ward_code}`, 'i')
             }).sort({ shop_id: -1 });
 
@@ -85,11 +83,11 @@ shopSchema.pre('save', async function(next) {
 
         // Kiểm tra unique shop_id
         if (this.isModified('shop_id')) {
-            const existingShop = await Shop.findOne({
+            const existingShop = await this.constructor.findOne({
                 shop_id: this.shop_id,
                 _id: { $ne: this._id }
             });
-            
+
             if (existingShop) {
                 throw new Error('Shop ID must be unique');
             }
@@ -114,7 +112,5 @@ shopSchema.index({ shop_name: 1 });
 shopSchema.index({ street: 1 });
 shopSchema.index({ status: 1 });
 
-// Tạo model
-const Shop = mongoose.model('Shop', shopSchema);
-
-module.exports = Shop; 
+// Export model
+module.exports = mongoose.models.Shop || mongoose.model('Shop', shopSchema); 

@@ -120,5 +120,17 @@ orderSchema.pre('remove', async function (next) {
     }
 });
 
+// Thêm validation trước khi lưu
+orderSchema.pre('save', async function (next) {
+    try {
+        // Validate source.location_id phải khớp với shop_id khi source.type là 'shop'
+        if (this.source.type === 'shop' && this.source.location_id !== this.shop_id) {
+            throw new Error('source.location_id must match shop_id when source.type is shop');
+        }
+        next();
+    } catch (error) {
+        next(error);
+    }
+});
 
 module.exports = mongoose.model('Order', orderSchema);

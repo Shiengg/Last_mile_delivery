@@ -2,15 +2,16 @@ const express = require('express');
 const router = express.Router();
 const Order = require('../../models/order');
 const Channel = require('../../models/Channel');
-const OrderItem = require('../../models/OrderItem');
+const OrderItem = require('../../models/order_item');
 const Route = require('../../models/Route');
-const { authenticateApiKey } = require('../../middlewares/auth');
+const Shop = require('../../models/Shop');
+const { protect, authorize } = require('../../middlewares/authMiddleware');
 
 // Validate order data middleware
 const validateOrderData = (req, res, next) => {
-    const { order_details, customer_info, delivery_address, items } = req.body;
+    const { order_details, customer_info, destination, items } = req.body;
 
-    if (!order_details || !customer_info || !delivery_address || !items || !Array.isArray(items)) {
+    if (!order_details || !customer_info || !destination || !items || !Array.isArray(items)) {
         return res.status(400).json({
             success: false,
             message: 'Missing required fields'
@@ -18,12 +19,12 @@ const validateOrderData = (req, res, next) => {
     }
 
     // Validate delivery address
-    const requiredAddressFields = ['full_name', 'phone', 'province_id', 'district_id', 'ward_code', 'street'];
+    const requiredAddressFields = ['province_id', 'district_id', 'ward_code', 'street'];
     for (const field of requiredAddressFields) {
-        if (!delivery_address[field]) {
+        if (!destination.address[field]) {
             return res.status(400).json({
                 success: false,
-                message: `Missing required field: delivery_address.${field}`
+                message: `Missing required field: destination.address.${field}`
             });
         }
     }
@@ -49,56 +50,68 @@ const validateOrderData = (req, res, next) => {
 };
 
 // API endpoint để nhận đơn hàng từ website
-router.post('/ecommerce/create', authenticateApiKey, validateOrderData, async (req, res) => {
+router.post('/ecommerce/create', protect, authorize('Admin', 'Customer', 'EcommerceIntegration'), validateOrderData, async (req, res) => {
     try {
         const {
             order_details,
             customer_info,
-            delivery_address,
-            items
+            destination,
+            items,
+            channel,
+            shop_id,
+            source
         } = req.body;
 
+        // Kiểm tra dữ liệu bắt buộc
+        if (!shop_id || !source || !source.type || !source.location_id) {
+            return res.status(400).json({
+                success: false,
+                message: 'Thiếu thông tin shop_id hoặc source (type, location_id)'
+            });
+        }
+
         // Kiểm tra channel có tồn tại và active
-        const channel = await Channel.findOne({
-            code: 'ecommerce',
+        const channelDoc = await Channel.findOne({
+            code: channel || 'ecommerce',
             status: 'active'
         });
 
-        if (!channel) {
+        if (!channelDoc) {
             return res.status(400).json({
                 success: false,
-                message: 'E-commerce channel is not available'
+                message: 'Channel không khả dụng'
+            });
+        }
+
+        // Kiểm tra shop tồn tại
+        const shopExists = await Shop.findOne({ shop_id: shop_id });
+        if (!shopExists) {
+            return res.status(400).json({
+                success: false,
+                message: `Shop với ID ${shop_id} không tồn tại`
             });
         }
 
         // Tạo đơn hàng mới
         const newOrder = new Order({
             order_id: `EC-${Date.now()}`, // Prefix EC cho ecommerce
-            customer_id: customer_info.id,
-            channel: 'ecommerce',
-            source: {
-                type: order_details.source_type || 'warehouse',
-                location_id: order_details.source_id,
-                address: order_details.source_address
-            },
-            destination: {
-                receiver_name: delivery_address.full_name,
-                receiver_phone: delivery_address.phone,
-                address: {
-                    province_id: delivery_address.province_id,
-                    district_id: delivery_address.district_id,
-                    ward_code: delivery_address.ward_code,
-                    street: delivery_address.street,
-                    house_number: delivery_address.house_number
-                }
-            },
+            customer_id: req.user._id.toString(), // Lấy user ID từ token
+            channel: channel || 'ecommerce',
+            shop_id: shop_id,
+            source: source,
+            destination: destination,
             status: 'pending',
             total_price: order_details.total,
-            delivery_fee: order_details.delivery_fee || channel.settings.delivery_fee,
-            estimated_delivery_time: order_details.estimated_delivery_time || new Date(Date.now() + channel.settings.max_delivery_time * 60000),
-            notes: order_details.notes,
-            created_at: new Date(),
-            updated_at: new Date()
+            delivery_fee: order_details.delivery_fee || channelDoc.settings.delivery_fee,
+            estimated_delivery_time: order_details.estimated_delivery_time,
+            notes: order_details.notes
+        });
+
+        // Log dữ liệu trước khi lưu để debug
+        console.log('Order data before save:', {
+            order_id: newOrder.order_id,
+            shop_id: newOrder.shop_id,
+            source: newOrder.source
         });
 
         // Lưu đơn hàng
@@ -111,44 +124,19 @@ router.post('/ecommerce/create', authenticateApiKey, validateOrderData, async (r
                 product_name: item.name,
                 product_sku: item.sku,
                 quantity: item.quantity,
-                price: item.price,
-                total: item.quantity * item.price
+                price: item.price
             })
         ));
-
-        // Tạo route mới cho đơn hàng
-        const route = new Route({
-            route_code: `RT-${Date.now()}`,
-            channel: 'ecommerce',
-            shops: [{
-                shop_id: order_details.source_id,
-                order: 1,
-                status: 'pending'
-            }],
-            status: 'pending',
-            distance: order_details.estimated_distance || 0,
-            channel_settings: {
-                priority: channel.settings.delivery_priority,
-                max_delivery_time: channel.settings.max_delivery_time
-            }
-        });
-
-        await route.save();
-
-        // Cập nhật order với route_id
-        newOrder.route_id = route._id;
-        await newOrder.save();
 
         // Trả về response
         res.status(201).json({
             success: true,
-            message: 'Order created successfully',
+            message: 'Tạo đơn hàng thành công',
             data: {
                 order_id: newOrder.order_id,
-                route_id: route.route_code,
                 status: newOrder.status,
                 estimated_delivery_time: newOrder.estimated_delivery_time,
-                tracking_url: `${process.env.CLIENT_URL}/tracking/${newOrder.order_id}`
+                tracking_url: `/tracking/${newOrder.order_id}`
             }
         });
 
@@ -156,14 +144,14 @@ router.post('/ecommerce/create', authenticateApiKey, validateOrderData, async (r
         console.error('Error creating ecommerce order:', error);
         res.status(500).json({
             success: false,
-            message: 'Failed to create order',
+            message: 'Lỗi khi tạo đơn hàng',
             error: error.message
         });
     }
 });
 
 // API endpoint để cập nhật trạng thái đơn hàng
-router.post('/ecommerce/webhook', authenticateApiKey, async (req, res) => {
+router.post('/ecommerce/webhook', protect, authorize('Admin', 'DeliveryStaff'), async (req, res) => {
     try {
         const { order_id, status, notes } = req.body;
 
