@@ -104,11 +104,7 @@ const Footer = () => {
               {[
                 { label: "Trang chủ", path: "/" },
                 { label: "Dịch vụ", path: "/services" },
-                { label: "Tra cứu đơn hàng", path: "/tracking" },
-                { label: "Bảng giá", path: "/pricing" },
                 { label: "Về chúng tôi", path: "/about" },
-                { label: "Tuyển dụng", path: "/careers" },
-                { label: "Tin tức", path: "/news" },
                 { label: "Liên hệ", path: "/contact" },
               ].map((link, index) => (
                 <li key={index}>
@@ -247,29 +243,6 @@ const Footer = () => {
               )}
             </form>
 
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Tải ứng dụng</h3>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <a
-                href="#"
-                className="flex items-center bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
-              >
-                <FaGooglePlay className="h-6 w-6 mr-2" />
-                <div>
-                  <div className="text-xs">Tải về từ</div>
-                  <div className="text-sm font-medium">Google Play</div>
-                </div>
-              </a>
-              <a
-                href="#"
-                className="flex items-center bg-black text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
-              >
-                <FaApple className="h-6 w-6 mr-2" />
-                <div>
-                  <div className="text-xs">Tải về từ</div>
-                  <div className="text-sm font-medium">App Store</div>
-                </div>
-              </a>
-            </div>
           </div>
         </div>
       </div>
