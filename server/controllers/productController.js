@@ -19,7 +19,7 @@ exports.getAllProducts = async (req, res) => {
             query.$or = [
                 { name: { $regex: search, $options: 'i' } },
                 { sku: { $regex: search, $options: 'i' } },
-                { id: { $regex: search, $options: 'i' } } // Searching by your custom 'id' field
+                { id: { $regex: search, $options: 'i' } }
             ];
         }
 
