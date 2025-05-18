@@ -25,63 +25,53 @@ const RouteManagement = () => {
 
   useEffect(() => {
     const fetchVehicleTypes = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            const response = await axios.get('http://localhost:5000/api/vehicles', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            if (response.data.success) {
-                // Lọc chỉ lấy các vehicle type có status là active
-                const activeVehicleTypes = response.data.data.filter(type => type.status === 'active');
-                setVehicleTypes(activeVehicleTypes);
-            }
-        } catch (error) {
-            console.error('Error fetching vehicle types:', error);
-            toast.error('Failed to load vehicle types');
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get('http://localhost:5000/api/vehicles', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (response.data.success) {
+          const activeVehicleTypes = response.data.data.filter(type => type.status === 'active');
+          setVehicleTypes(activeVehicleTypes);
         }
+      } catch (error) {
+        console.error('Error fetching vehicle types:', error);
+        toast.error('Failed to load vehicle types');
+      }
     };
 
-    fetchVehicleTypes();
-  }, []);
-
-  useEffect(() => {
     const fetchDeliveryStaff = async () => {
-        try {
-            const token = localStorage.getItem('token');
-            console.log('Fetching delivery staff with token:', token); // Debug log
-
-            const response = await axios.get(
-                'http://localhost:5000/api/users/delivery-staff',
-                {
-                    headers: { 
-                        Authorization: `Bearer ${token}`,
-                        'Content-Type': 'application/json'
-                    }
-                }
-            );
-            
-            console.log('Delivery staff response:', response.data); // Debug log
-
-            if (response.data.success) {
-                setDeliveryStaff(response.data.data);
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(
+          'http://localhost:5000/api/users/delivery-staff',
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json'
             }
-        } catch (error) {
-            console.error('Error fetching delivery staff:', error);
-            console.error('Error details:', error.response?.data);
-            toast.error(error.response?.data?.message || 'Failed to load delivery staff');
+          }
+        );
+
+        if (response.data.success) {
+          setDeliveryStaff(response.data.data);
         }
+      } catch (error) {
+        console.error('Error fetching delivery staff:', error);
+        toast.error(error.response?.data?.message || 'Failed to load delivery staff');
+      }
     };
 
-    fetchDeliveryStaff();
+    Promise.all([fetchVehicleTypes(), fetchDeliveryStaff()]);
   }, []);
 
   const fetchRoutes = async () => {
     try {
       const token = localStorage.getItem('token');
       console.log('Fetching routes with token:', token);
-      
+
       const response = await axios.get('http://localhost:5000/api/routes', {
-        headers: { 
+        headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
@@ -95,9 +85,9 @@ const RouteManagement = () => {
     } catch (error) {
       console.error('Error fetching routes:', error);
       console.error('Error details:', error.response?.data);
-      
+
       toast.error(
-        error.response?.data?.message || 
+        error.response?.data?.message ||
         'Failed to load routes'
       );
     } finally {
@@ -122,6 +112,34 @@ const RouteManagement = () => {
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const getChannelBadgeClass = (channel) => {
+    if (!channel) return 'bg-gray-100 text-gray-800 border border-gray-300';
+
+    switch (channel) {
+      case 'shop_direct':
+        return 'bg-green-100 text-green-800 border border-green-300';
+      case 'ecommerce':
+        return 'bg-blue-100 text-blue-800 border border-blue-300';
+      case 'warehouse':
+        return 'bg-purple-100 text-purple-800 border border-purple-300';
+      default:
+        return 'bg-gray-100 text-gray-800 border border-gray-300';
+    }
+  };
+
+  const formatChannelName = (channel) => {
+    if (!channel) return 'Unknown';
+
+    const channelNames = {
+      'shop_direct': 'Shop Direct',
+      'ecommerce': 'E-commerce',
+      'warehouse': 'Warehouse'
+    };
+    return channelNames[channel] || channel.split('_').map(word =>
+      word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ');
   };
 
   const handleDelete = async (id, routeCode) => {
@@ -155,9 +173,9 @@ const RouteManagement = () => {
       }
     } catch (error) {
       console.error('Error deleting route:', error);
-      
+
       const errorMessage = error.response?.data?.message || 'Failed to delete route';
-      
+
       Swal.fire({
         icon: 'error',
         title: 'Error!',
@@ -170,8 +188,8 @@ const RouteManagement = () => {
   const handleEdit = (route) => {
     setSelectedRoute(route);
     setEditForm({
-        vehicle_type_id: route.vehicle_type_id,
-        status: route.status
+      vehicle_type_id: route.vehicle_type_id,
+      status: route.status
     });
     setShowEditModal(true);
   };
@@ -179,153 +197,152 @@ const RouteManagement = () => {
   const handleEditSubmit = async (e) => {
     e.preventDefault();
     try {
-        const isVehicleTypeEditable = !['assigned', 'delivering', 'delivered', 'cancelled', 'failed'].includes(selectedRoute.status);
-        if (isVehicleTypeEditable && editForm.vehicle_type_id === '') {
-            toast.error('Please select a vehicle type');
-            return;
+      const isVehicleTypeEditable = !['assigned', 'delivering', 'delivered', 'cancelled', 'failed'].includes(selectedRoute.status);
+      if (isVehicleTypeEditable && editForm.vehicle_type_id === '') {
+        toast.error('Please select a vehicle type');
+        return;
+      }
+
+      const payload = {
+        status: editForm.status,
+        vehicle_type_id: isVehicleTypeEditable ? editForm.vehicle_type_id : selectedRoute.vehicle_type_id
+      };
+
+      console.log('Submitting edit form:', payload);
+
+      const token = localStorage.getItem('token');
+      const response = await axios.put(
+        `http://localhost:5000/api/routes/${selectedRoute._id}`,
+        payload,
+        {
+          headers: { Authorization: `Bearer ${token}` }
         }
+      );
 
-        const payload = {
-            status: editForm.status,
-            vehicle_type_id: isVehicleTypeEditable ? editForm.vehicle_type_id : selectedRoute.vehicle_type_id
-        };
+      if (response.data.success) {
+        await fetchRoutes();
 
-        console.log('Submitting edit form:', payload);
+        setShowEditModal(false);
+        setSelectedRoute(null);
 
-        const token = localStorage.getItem('token');
-        const response = await axios.put(
-            `http://localhost:5000/api/routes/${selectedRoute._id}`,
-            payload,
-            {
-                headers: { Authorization: `Bearer ${token}` }
-            }
-        );
-
-        if (response.data.success) {
-            await fetchRoutes();
-
-            setShowEditModal(false);
-            setSelectedRoute(null);
-            
-            Swal.fire({
-                icon: 'success',
-                title: 'Success!',
-                text: 'Route updated successfully',
-                timer: 1500,
-                showConfirmButton: false
-            });
-        }
-    } catch (error) {
-        console.error('Error updating route:', error);
         Swal.fire({
-            icon: 'error',
-            title: 'Error!',
-            text: error.response?.data?.message || 'Failed to update route'
+          icon: 'success',
+          title: 'Success!',
+          text: 'Route updated successfully',
+          timer: 1500,
+          showConfirmButton: false
         });
+      }
+    } catch (error) {
+      console.error('Error updating route:', error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Error!',
+        text: error.response?.data?.message || 'Failed to update route'
+      });
     }
   };
 
   const EditModal = () => {
     // Định nghĩa các trạng thái có thể chuyển đổi
     const getAllowedStatuses = (currentStatus) => {
-        const transitions = {
-            'pending': ['assigned', 'cancelled'],
-            'assigned': ['delivering', 'cancelled'],
-            'delivering': ['delivered', 'failed'],
-            'delivered': [],
-            'cancelled': [],
-            'failed': ['pending']
-        };
-        return transitions[currentStatus] || [];
+      const transitions = {
+        'pending': ['assigned', 'cancelled'],
+        'assigned': ['delivering', 'cancelled'],
+        'delivering': ['delivered', 'failed'],
+        'delivered': [],
+        'cancelled': [],
+        'failed': ['pending']
+      };
+      return transitions[currentStatus] || [];
     };
 
     const allowedStatuses = getAllowedStatuses(selectedRoute.status);
 
     // Kiểm tra xem có cho phép edit vehicle type không
     const isVehicleTypeEditable = (status) => {
-        const nonEditableStatuses = [
-            'assigned', 'delivering', 'delivered', 
-            'cancelled', 'failed'
-        ];
-        return !nonEditableStatuses.includes(status);
+      const nonEditableStatuses = [
+        'assigned', 'delivering', 'delivered',
+        'cancelled', 'failed'
+      ];
+      return !nonEditableStatuses.includes(status);
     };
 
     return (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-[90%] md:w-96 shadow-lg rounded-md bg-white">
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-medium">Edit Route</h3>
-                    <button onClick={() => setShowEditModal(false)}>
-                        <FiX className="h-6 w-6" />
-                    </button>
-                </div>
-                <form onSubmit={handleEditSubmit}>
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700">Vehicle Type</label>
-                        <select
-                            value={editForm.vehicle_type_id}
-                            onChange={(e) => setEditForm({...editForm, vehicle_type_id: e.target.value})}
-                            className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm ${
-                                !isVehicleTypeEditable(selectedRoute.status) ? 'bg-gray-100' : ''
-                            }`}
-                            disabled={!isVehicleTypeEditable(selectedRoute.status)}
-                            required
-                        >
-                            <option value="" disabled>Select Vehicle Type</option>
-                            {vehicleTypes.map((type) => (
-                                <option key={type.code} value={type.code}>
-                                    {type.name}
-                                </option>
-                            ))}
-                        </select>
-                        {vehicleTypes.length === 0 && (
-                            <p className="mt-1 text-sm text-yellow-600">
-                                No active vehicle types available
-                            </p>
-                        )}
-                        {!isVehicleTypeEditable(selectedRoute.status) && (
-                            <p className="mt-1 text-sm text-gray-500">
-                                Vehicle type cannot be changed in {selectedRoute.status} status
-                            </p>
-                        )}
-                    </div>
-                    <div className="mb-4">
-                        <label className="block text-sm font-medium text-gray-700">Status</label>
-                        <select
-                            value={editForm.status}
-                            onChange={(e) => setEditForm({...editForm, status: e.target.value})}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
-                        >
-                            <option value={selectedRoute.status}>
-                                {selectedRoute.status.charAt(0).toUpperCase() + selectedRoute.status.slice(1)}
-                            </option>
-                            {allowedStatuses.map((status) => (
-                                status !== selectedRoute.status && (
-                                    <option key={status} value={status}>
-                                        {status.charAt(0).toUpperCase() + status.slice(1)}
-                                    </option>
-                                )
-                            ))}
-                        </select>
-                    </div>
-                    <div className="flex justify-end space-x-3">
-                        <button
-                            type="button"
-                            onClick={() => setShowEditModal(false)}
-                            className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
-                        >
-                            Cancel
-                        </button>
-                        <button
-                            type="submit"
-                            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-                        >
-                            Save Changes
-                        </button>
-                    </div>
-                </form>
+      <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div className="relative top-20 mx-auto p-5 border w-[90%] md:w-96 shadow-lg rounded-md bg-white">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-medium">Edit Route</h3>
+            <button onClick={() => setShowEditModal(false)}>
+              <FiX className="h-6 w-6" />
+            </button>
+          </div>
+          <form onSubmit={handleEditSubmit}>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700">Vehicle Type</label>
+              <select
+                value={editForm.vehicle_type_id}
+                onChange={(e) => setEditForm({ ...editForm, vehicle_type_id: e.target.value })}
+                className={`mt-1 block w-full rounded-md border-gray-300 shadow-sm ${!isVehicleTypeEditable(selectedRoute.status) ? 'bg-gray-100' : ''
+                  }`}
+                disabled={!isVehicleTypeEditable(selectedRoute.status)}
+                required
+              >
+                <option value="" disabled>Select Vehicle Type</option>
+                {vehicleTypes.map((type) => (
+                  <option key={type.code} value={type.code}>
+                    {type.name}
+                  </option>
+                ))}
+              </select>
+              {vehicleTypes.length === 0 && (
+                <p className="mt-1 text-sm text-yellow-600">
+                  No active vehicle types available
+                </p>
+              )}
+              {!isVehicleTypeEditable(selectedRoute.status) && (
+                <p className="mt-1 text-sm text-gray-500">
+                  Vehicle type cannot be changed in {selectedRoute.status} status
+                </p>
+              )}
             </div>
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700">Status</label>
+              <select
+                value={editForm.status}
+                onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm"
+              >
+                <option value={selectedRoute.status}>
+                  {selectedRoute.status.charAt(0).toUpperCase() + selectedRoute.status.slice(1)}
+                </option>
+                {allowedStatuses.map((status) => (
+                  status !== selectedRoute.status && (
+                    <option key={status} value={status}>
+                      {status.charAt(0).toUpperCase() + status.slice(1)}
+                    </option>
+                  )
+                ))}
+              </select>
+            </div>
+            <div className="flex justify-end space-x-3">
+              <button
+                type="button"
+                onClick={() => setShowEditModal(false)}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+              >
+                Save Changes
+              </button>
+            </div>
+          </form>
         </div>
+      </div>
     );
   };
 
@@ -354,18 +371,23 @@ const RouteManagement = () => {
         <div className="flex justify-between items-start mb-3">
           <div>
             <h3 className="text-sm font-medium text-gray-900">{route.route_code}</h3>
-            <span className={`mt-1 px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(route.status)}`}>
-              {route.status.charAt(0).toUpperCase() + route.status.slice(1)}
-            </span>
+            <div className="flex flex-wrap gap-2 mt-1">
+              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getChannelBadgeClass(route.channel)}`}>
+                {formatChannelName(route.channel)}
+              </span>
+              <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeClass(route.status)}`}>
+                {route.status.charAt(0).toUpperCase() + route.status.slice(1)}
+              </span>
+            </div>
           </div>
           <div className="flex space-x-2">
-            <button 
+            <button
               onClick={() => onEdit(route)}
               className="text-indigo-600 hover:text-indigo-900 p-1"
             >
               <FiEdit2 className="w-4 h-4" />
             </button>
-            <button 
+            <button
               onClick={() => isDeletable(route.status) && onDelete(route._id, route.route_code)}
               className={`p-1 ${isDeletable(route.status) ? 'text-red-600 hover:text-red-900' : 'text-gray-400'}`}
               disabled={!isDeletable(route.status)}
@@ -380,12 +402,12 @@ const RouteManagement = () => {
           <div className="text-sm text-gray-600 mt-2">
             <div className="font-medium mb-1">Shops:</div>
             {route.shops.map((shop, index) => (
-                <div key={shop.shop_id} className="ml-2 mb-1">
-                    {index + 1}. {shop.shop_name}
-                    <span className="text-xs text-gray-400 ml-2">
-                        ({shop.shop_id})
-                    </span>
-                </div>
+              <div key={shop.shop_id} className="ml-2 mb-1">
+                {index + 1}. {shop.shop_name}
+                <span className="text-xs text-gray-400 ml-2">
+                  ({shop.shop_id})
+                </span>
+              </div>
             ))}
           </div>
           <div>
@@ -401,100 +423,107 @@ const RouteManagement = () => {
 
   const handleAddRoute = async (routeData) => {
     try {
-        // Kiểm tra có ít nhất 2 shop
-        if (!routeData.shops || routeData.shops.length < 2) {
-            toast.error('At least 2 shops are required for a route');
-            return;
+      if (!routeData.shops || routeData.shops.length < 2) {
+        toast.error('At least 2 shops are required for a route');
+        return;
+      }
+
+      // Format dữ liệu trước khi gửi
+      const formattedData = {
+        shops: routeData.shops.map((shop, index) => ({
+          shop_id: shop.shop_id,
+          order: index + 1,
+          // Thêm coordinates từ shop details
+          latitude: shop.latitude,
+          longitude: shop.longitude
+        })),
+        vehicle_type_id: routeData.vehicle_type_id,
+        channel: 'shop_direct' // Mặc định channel là shop_direct
+      };
+
+      console.log('Creating route with data:', formattedData);
+
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        'http://localhost:5000/api/routes',
+        formattedData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         }
+      );
 
-        // Format dữ liệu trước khi gửi
-        const formattedData = {
-            shops: routeData.shops.map((shop, index) => ({
-                shop_id: shop.shop_id,
-                order: index + 1  // Gán order theo thứ tự trong mảng
-            })),
-            vehicle_type_id: routeData.vehicle_type_id
-        };
-
-        const token = localStorage.getItem('token');
-        const response = await axios.post(
-            'http://localhost:5000/api/routes',
-            formattedData,
-            {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            }
-        );
-
-        if (response.data.success) {
-            await Swal.fire({
-                icon: 'success',
-                title: 'Success!',
-                text: 'Route created successfully',
-                timer: 1500,
-                showConfirmButton: false
-            });
-
-            // Refresh routes list
-            await fetchRoutes();
-            setShowAddModal(false);
-        }
-    } catch (error) {
-        console.error('Error creating route:', error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Error!',
-            text: error.response?.data?.message || 'Failed to create route',
-            confirmButtonText: 'OK'
+      if (response.data.success) {
+        await Swal.fire({
+          icon: 'success',
+          title: 'Success!',
+          text: 'Route created successfully',
+          timer: 1500,
+          showConfirmButton: false
         });
+
+        await fetchRoutes();
+        setShowAddModal(false);
+      }
+    } catch (error) {
+      console.error('Error creating route:', error);
+      console.error('Error response:', error.response?.data);
+
+      const errorMessage = error.response?.data?.message || 'Failed to create route';
+      Swal.fire({
+        icon: 'error',
+        title: 'Error!',
+        text: errorMessage,
+        confirmButtonText: 'OK'
+      });
     }
   };
 
   const handleAssignRoute = async (routeId, deliveryStaffId) => {
     try {
-        if (!routeId || !deliveryStaffId) {
-            toast.error('Please select a delivery staff');
-            return;
+      if (!routeId || !deliveryStaffId) {
+        toast.error('Please select a delivery staff');
+        return;
+      }
+
+      const token = localStorage.getItem('token');
+      const response = await axios.post(
+        'http://localhost:5000/api/routes/assign',
+        {
+          route_id: routeId,
+          delivery_staff_id: deliveryStaffId
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         }
+      );
 
-        const token = localStorage.getItem('token');
-        const response = await axios.post(
-            'http://localhost:5000/api/routes/assign',
-            {
-                route_id: routeId,
-                delivery_staff_id: deliveryStaffId
-            },
-            {
-                headers: { 
-                    Authorization: `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            }
-        );
-
-        if (response.data.success) {
-            // Hiển thị SweetAlert2
-            await Swal.fire({
-                icon: 'success',
-                title: 'Route Assigned Successfully!',
-                text: `Route has been assigned to ${response.data.data.delivery_staff_id.fullName || response.data.data.delivery_staff_id.username}`,
-                showConfirmButton: false,
-                timer: 1500
-            });
-
-            // Reload trang sau khi SweetAlert đóng
-            window.location.reload();
-        }
-    } catch (error) {
-        console.error('Error assigning route:', error.response?.data || error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Assignment Failed',
-            text: error.response?.data?.message || 'Failed to assign route',
-            confirmButtonText: 'OK'
+      if (response.data.success) {
+        // Hiển thị SweetAlert2
+        await Swal.fire({
+          icon: 'success',
+          title: 'Route Assigned Successfully!',
+          text: `Route has been assigned to ${response.data.data.delivery_staff_id.fullName || response.data.data.delivery_staff_id.username}`,
+          showConfirmButton: false,
+          timer: 1500
         });
+
+        // Reload trang sau khi SweetAlert đóng
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Error assigning route:', error.response?.data || error);
+      Swal.fire({
+        icon: 'error',
+        title: 'Assignment Failed',
+        text: error.response?.data?.message || 'Failed to assign route',
+        confirmButtonText: 'OK'
+      });
     }
   };
 
@@ -508,10 +537,10 @@ const RouteManagement = () => {
 
   if (error) {
     return (
-        <div className="p-4 text-red-500">
-            <h3 className="font-bold">Error loading data:</h3>
-            <p>{error}</p>
-        </div>
+      <div className="p-4 text-red-500">
+        <h3 className="font-bold">Error loading data:</h3>
+        <p>{error}</p>
+      </div>
     );
   }
 
@@ -519,7 +548,7 @@ const RouteManagement = () => {
     <div className="p-4 md:p-6 max-w-7xl mx-auto">
       <div className="mb-6">
         <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-4">Route Management</h2>
-        
+
         {/* Status summary - Responsive */}
         <div className="grid grid-cols-2 md:flex md:flex-wrap gap-2 md:gap-4 mb-4">
           <div className="flex items-center">
@@ -582,6 +611,9 @@ const RouteManagement = () => {
                       Route ID
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Channel
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Shops
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -607,14 +639,19 @@ const RouteManagement = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {route.route_code}
                       </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getChannelBadgeClass(route.channel)}`}>
+                          {formatChannelName(route.channel)}
+                        </span>
+                      </td>
                       <td className="px-6 py-4 text-sm text-gray-500">
                         {route.shops.map((shop, index) => (
-                            <div key={shop.shop_id} className="mb-1">
-                                {index + 1}. {shop.shop_name}
-                                <span className="text-xs text-gray-400 ml-2">
-                                    ({shop.shop_id})
-                                </span>
-                            </div>
+                          <div key={shop.shop_id} className="mb-1">
+                            {index + 1}. {shop.shop_name}
+                            <span className="text-xs text-gray-400 ml-2">
+                              ({shop.shop_id})
+                            </span>
+                          </div>
                         ))}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -630,62 +667,61 @@ const RouteManagement = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         {route.status === 'pending' ? (
-                            <select
-                                onChange={(e) => {
-                                    if (e.target.value) { // Kiểm tra có giá trị được chọn
-                                        handleAssignRoute(route._id, e.target.value);
-                                    }
-                                }}
-                                value="" // Đặt giá trị mặc định
-                                className="w-full text-sm border rounded py-1 px-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            >
-                                <option value="" disabled>Select delivery staff...</option>
-                                {deliveryStaff.map(staff => (
-                                    <option 
-                                        key={staff._id} 
-                                        value={staff._id}
-                                        disabled={staff.status === 'inactive'}
-                                    >
-                                        {staff.fullName || staff.username}
-                                        {staff.status === 'inactive' && ' (Inactive)'}
-                                        {staff.phone && ` - ${staff.phone}`}
-                                    </option>
-                                ))}
-                            </select>
+                          <select
+                            onChange={(e) => {
+                              if (e.target.value) { // Kiểm tra có giá trị được chọn
+                                handleAssignRoute(route._id, e.target.value);
+                              }
+                            }}
+                            value="" // Đặt giá trị mặc định
+                            className="w-full text-sm border rounded py-1 px-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          >
+                            <option value="" disabled>Select delivery staff...</option>
+                            {deliveryStaff.map(staff => (
+                              <option
+                                key={staff._id}
+                                value={staff._id}
+                                disabled={staff.status === 'inactive'}
+                              >
+                                {staff.fullName || staff.username}
+                                {staff.status === 'inactive' && ' (Inactive)'}
+                                {staff.phone && ` - ${staff.phone}`}
+                              </option>
+                            ))}
+                          </select>
                         ) : route.delivery_staff_id ? (
-                            <div>
-                                <div className="font-medium">
-                                    {route.delivery_staff_id.fullName || route.delivery_staff_id.username}
-                                </div>
-                                {route.delivery_staff_id.phone && (
-                                    <div className="text-xs text-gray-500">
-                                        {route.delivery_staff_id.phone}
-                                    </div>
-                                )}
-                                {route.assigned_at && (
-                                    <div className="text-xs text-gray-400">
-                                        Assigned: {new Date(route.assigned_at).toLocaleDateString()}
-                                    </div>
-                                )}
+                          <div>
+                            <div className="font-medium">
+                              {route.delivery_staff_id.fullName || route.delivery_staff_id.username}
                             </div>
+                            {route.delivery_staff_id.phone && (
+                              <div className="text-xs text-gray-500">
+                                {route.delivery_staff_id.phone}
+                              </div>
+                            )}
+                            {route.assigned_at && (
+                              <div className="text-xs text-gray-400">
+                                Assigned: {new Date(route.assigned_at).toLocaleDateString()}
+                              </div>
+                            )}
+                          </div>
                         ) : (
-                            <span className="text-gray-400">Not assigned</span>
+                          <span className="text-gray-400">Not assigned</span>
                         )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <button 
+                        <button
                           onClick={() => handleEdit(route)}
                           className="text-indigo-600 hover:text-indigo-900 mr-4"
                         >
                           <FiEdit2 className="inline" />
                         </button>
-                        <button 
+                        <button
                           onClick={() => isDeletable(route.status) && handleDelete(route._id, route.route_code)}
-                          className={`transition-colors duration-200 ${
-                            isDeletable(route.status)
-                              ? 'text-red-600 hover:text-red-900'
-                              : 'text-gray-400 cursor-not-allowed'
-                          }`}
+                          className={`transition-colors duration-200 ${isDeletable(route.status)
+                            ? 'text-red-600 hover:text-red-900'
+                            : 'text-gray-400 cursor-not-allowed'
+                            }`}
                           disabled={!isDeletable(route.status)}
                           title={
                             !isDeletable(route.status)

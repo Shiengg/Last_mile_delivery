@@ -20,7 +20,6 @@ class MapService {
 
                 // Tạo URL cho Mapbox Directions API
                 const url = `${MAPBOX_DIRECTIONS_API}/${start.longitude},${start.latitude};${end.longitude},${end.latitude}`;
-                
                 // Thêm các parameters
                 const params = {
                     access_token: MAPBOX_ACCESS_TOKEN,
