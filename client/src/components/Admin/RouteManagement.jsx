@@ -80,7 +80,12 @@ const RouteManagement = () => {
       console.log('Routes response:', response.data);
 
       if (response.data.success) {
-        setRoutes(response.data.data);
+        // Transform routes data to ensure channel is included
+        const transformedRoutes = response.data.data.map(route => ({
+          ...route,
+          channel: route.channel || 'shop_direct' // Set default if channel is missing
+        }));
+        setRoutes(transformedRoutes);
       }
     } catch (error) {
       console.error('Error fetching routes:', error);
@@ -115,9 +120,9 @@ const RouteManagement = () => {
   };
 
   const getChannelBadgeClass = (channel) => {
-    if (!channel) return 'bg-gray-100 text-gray-800 border border-gray-300';
+    const channelType = channel || 'shop_direct'; // Set default if channel is undefined
 
-    switch (channel) {
+    switch (channelType) {
       case 'shop_direct':
         return 'bg-green-100 text-green-800 border border-green-300';
       case 'ecommerce':
@@ -130,14 +135,15 @@ const RouteManagement = () => {
   };
 
   const formatChannelName = (channel) => {
-    if (!channel) return 'Unknown';
+    const channelType = channel || 'shop_direct'; // Set default if channel is undefined
 
     const channelNames = {
       'shop_direct': 'Shop Direct',
       'ecommerce': 'E-commerce',
       'warehouse': 'Warehouse'
     };
-    return channelNames[channel] || channel.split('_').map(word =>
+
+    return channelNames[channelType] || channelType.split('_').map(word =>
       word.charAt(0).toUpperCase() + word.slice(1)
     ).join(' ');
   };
