@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Header from '../components/Shared/Header';
 import { toast } from 'react-hot-toast';
-import { FiMapPin, FiTruck, FiClock, FiPackage, FiUser, FiMail, FiPhone, FiCheckCircle, FiX } from 'react-icons/fi';
+import { FiMapPin, FiTruck, FiClock, FiPackage, FiUser, FiMail, FiPhone, FiCheckCircle, FiX, FiFilter } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import Swal from 'sweetalert2';
 import { useNavigate } from 'react-router-dom';
@@ -16,6 +16,8 @@ const DeliveryDashboard = () => {
   const [currentPage, setCurrentPage] = useState({ assigned: 1, pending: 1 });
   const [itemsPerPage] = useState(5);
   const [currentTab, setCurrentTab] = useState('assigned');
+  const [selectedChannel, setSelectedChannel] = useState('all');
+  const [channels] = useState(['all', 'web', 'mobile', 'physical']);
 
   // Animation variants
   const containerVariants = {
@@ -70,10 +72,10 @@ const DeliveryDashboard = () => {
 
       if (response.data.success) {
         // Phân loại routes
-        const assigned = response.data.data.filter(route => 
+        const assigned = response.data.data.filter(route =>
           route.delivery_staff_id?._id === userInfo._id
         );
-        const pending = response.data.data.filter(route => 
+        const pending = response.data.data.filter(route =>
           route.status === 'pending'
         );
 
@@ -94,7 +96,7 @@ const DeliveryDashboard = () => {
       const response = await axios.post(
         'http://localhost:5000/api/routes/claim',
         { route_id: routeId },
-        { headers: { Authorization: `Bearer ${token}` }}
+        { headers: { Authorization: `Bearer ${token}` } }
       );
 
       if (response.data.success) {
@@ -146,7 +148,7 @@ const DeliveryDashboard = () => {
         const response = await axios.put(
           `http://localhost:5000/api/routes/${routeId}/status`,
           { status: newStatus },
-          { headers: { Authorization: `Bearer ${token}` }}
+          { headers: { Authorization: `Bearer ${token}` } }
         );
 
         if (response.data.success) {
@@ -188,6 +190,31 @@ const DeliveryDashboard = () => {
     </motion.div>
   );
 
+  const filterRoutesByChannel = (routes) => {
+    if (selectedChannel === 'all') return routes;
+    return routes.filter(route => {
+      // Check if any order in the route matches the selected channel
+      return route.orders?.some(order => order.channel === selectedChannel);
+    });
+  };
+
+  const ChannelFilter = () => (
+    <div className="mb-4 flex items-center space-x-2">
+      <FiFilter className="text-gray-500" />
+      <select
+        value={selectedChannel}
+        onChange={(e) => setSelectedChannel(e.target.value)}
+        className="form-select rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+      >
+        {channels.map(channel => (
+          <option key={channel} value={channel}>
+            {channel.charAt(0).toUpperCase() + channel.slice(1)}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+
   const RouteCard = ({ route, type }) => {
     return (
       <motion.div
@@ -198,50 +225,47 @@ const DeliveryDashboard = () => {
           hover:shadow-md relative overflow-hidden`}
       >
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-4">
-          <div className="space-y-1">
-            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-              <h3 className="text-lg font-semibold text-gray-900">{route.route_code}</h3>
-              <StatusBadge status={route.status} />
+          <div className="flex-1">
+            <div className="flex items-center gap-2 mb-2">
+              <FiMapPin className="text-gray-500" />
+              <h3 className="text-lg font-semibold text-gray-900">Route #{route.route_code}</h3>
             </div>
-            <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
-              <div className="flex items-center">
-                <FiTruck className="mr-2 text-blue-500" />
-                <span>{route.vehicle_type}</span>
-              </div>
-              <div className="flex items-center">
-                <FiMapPin className="mr-2 text-blue-500" />
-                <span>{route.distance.toFixed(2)} km</span>
+
+            {/* Channel Tags */}
+            <div className="flex flex-wrap gap-2 mb-2">
+              {Array.from(new Set(route.orders?.map(order => order.channel) || [])).map(channel => (
+                <span
+                  key={channel}
+                  className={`px-2 py-1 rounded-full text-xs font-medium
+                    ${channel === 'web' ? 'bg-blue-100 text-blue-800' :
+                      channel === 'mobile' ? 'bg-green-100 text-green-800' :
+                        'bg-purple-100 text-purple-800'}`}
+                >
+                  {channel.charAt(0).toUpperCase() + channel.slice(1)}
+                </span>
+              ))}
+            </div>
+
+            <div className="text-sm text-gray-500 mb-2">
+              <div className="flex items-center gap-1">
+                <FiPackage className="text-gray-400" />
+                <span>{route.shops?.length || 0} stops</span>
               </div>
             </div>
+
+            {/* Existing route information */}
+            <DeliverySequence shops={route.shops} />
           </div>
-          
-          <div className="flex justify-end">
-            {type === 'pending' ? (
-              <ClaimButton route={route} />
-            ) : (
+
+          <div className="flex flex-col gap-2">
+            <StatusBadge status={route.status} />
+            {type === 'assigned' ? (
               <RouteActions route={route} />
+            ) : (
+              <ClaimButton route={route} />
             )}
+            <ViewMapButton routeId={route.route_code} />
           </div>
-        </div>
-
-        <div className="bg-gray-50 rounded-lg p-3 sm:p-4">
-          <div className="flex items-center mb-3">
-            <FiPackage className="text-blue-500 mr-2" />
-            <span className="font-medium text-gray-700">Delivery Sequence</span>
-          </div>
-          <DeliverySequence shops={route.shops} />
-        </div>
-
-        <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-sm text-gray-500">
-          <div className="flex items-center">
-            <FiClock className="mr-2 text-blue-500" />
-            <span className="text-xs sm:text-sm">
-              Assigned: {new Date(route.assigned_at).toLocaleString()}
-            </span>
-          </div>
-          {route.status === 'delivering' && (
-            <ViewMapButton routeId={route._id} />
-          )}
         </div>
       </motion.div>
     );
@@ -276,13 +300,13 @@ const DeliveryDashboard = () => {
             </div>
             {index < shops.length - 1 && (
               <div className="mt-1 flex items-center text-xs text-gray-500">
-                <motion.svg 
+                <motion.svg
                   className="w-4 h-4 mr-1 text-blue-500"
                   initial={{ y: 0 }}
                   animate={{ y: [0, 2, 0] }}
                   transition={{ duration: 2, repeat: Infinity }}
-                  fill="none" 
-                  stroke="currentColor" 
+                  fill="none"
+                  stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
@@ -304,7 +328,7 @@ const DeliveryDashboard = () => {
 
   const Pagination = ({ totalItems, itemsPerPage, currentPage, onPageChange, type }) => {
     const totalPages = Math.ceil(totalItems / itemsPerPage);
-    
+
     if (totalPages <= 1) return null;
 
     return (
@@ -312,11 +336,10 @@ const DeliveryDashboard = () => {
         <button
           onClick={() => onPageChange(type, Math.max(1, currentPage - 1))}
           disabled={currentPage === 1}
-          className={`px-3 py-1 rounded-md ${
-            currentPage === 1
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-          }`}
+          className={`px-3 py-1 rounded-md ${currentPage === 1
+            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+            }`}
         >
           Previous
         </button>
@@ -326,11 +349,10 @@ const DeliveryDashboard = () => {
         <button
           onClick={() => onPageChange(type, Math.min(totalPages, currentPage + 1))}
           disabled={currentPage === totalPages}
-          className={`px-3 py-1 rounded-md ${
-            currentPage === totalPages
-              ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
-          }`}
+          className={`px-3 py-1 rounded-md ${currentPage === totalPages
+            ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+            : 'bg-blue-50 text-blue-600 hover:bg-blue-100'
+            }`}
         >
           Next
         </button>
@@ -418,7 +440,7 @@ const DeliveryDashboard = () => {
 
   const ViewMapButton = ({ routeId }) => {
     const navigate = useNavigate();
-    
+
     return (
       <motion.button
         whileHover={{ scale: 1.05 }}
@@ -466,8 +488,8 @@ const DeliveryDashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-50 to-blue-50">
       <Header title="Delivery Dashboard" />
-      
-      <motion.div 
+
+      <motion.div
         initial="hidden"
         animate="visible"
         variants={containerVariants}
@@ -485,7 +507,7 @@ const DeliveryDashboard = () => {
                   }} />
                 </div>
                 <div className="relative">
-                  <motion.div 
+                  <motion.div
                     initial={{ scale: 0 }}
                     animate={{ scale: 1 }}
                     transition={{ type: "spring", stiffness: 260, damping: 20 }}
@@ -527,8 +549,8 @@ const DeliveryDashboard = () => {
                       <div>
                         <label className="text-sm text-gray-500">Status</label>
                         <p className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium
-                          ${userInfo.status === 'active' 
-                            ? 'bg-green-100 text-green-800 border border-green-200' 
+                          ${userInfo.status === 'active'
+                            ? 'bg-green-100 text-green-800 border border-green-200'
                             : 'bg-red-100 text-red-800 border border-red-200'}`}>
                           {userInfo.status.charAt(0).toUpperCase() + userInfo.status.slice(1)}
                         </p>
@@ -572,59 +594,63 @@ const DeliveryDashboard = () => {
           </div>
         </div>
 
-        {/* Routes Grid với tabs */}
-        <div className="bg-white rounded-xl shadow-sm p-3 sm:p-6">
-          <div className="border-b border-gray-200 mb-4 sm:mb-6 overflow-x-auto">
-            <nav className="-mb-px flex space-x-4 sm:space-x-8">
-              <button
-                className={`
-                  pb-4 px-1 border-b-2 font-medium text-sm
-                  ${currentTab === 'assigned'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}
-                `}
-                onClick={() => setCurrentTab('assigned')}
-              >
-                Assigned Routes ({assignedRoutes.length})
-              </button>
-              <button
-                className={`
-                  pb-4 px-1 border-b-2 font-medium text-sm
-                  ${currentTab === 'pending'
-                    ? 'border-blue-500 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}
-                `}
-                onClick={() => setCurrentTab('pending')}
-              >
-                Available Routes ({pendingRoutes.length})
-              </button>
-            </nav>
+        {/* Tab Navigation */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+          <div className="flex space-x-4 mb-4 sm:mb-0">
+            <button
+              onClick={() => setCurrentTab('assigned')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors
+                ${currentTab === 'assigned'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+            >
+              Assigned Routes
+            </button>
+            <button
+              onClick={() => setCurrentTab('pending')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors
+                ${currentTab === 'pending'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-white text-gray-600 hover:bg-gray-50'}`}
+            >
+              Pending Routes
+            </button>
           </div>
-
-          {/* Routes List */}
-          <div className="space-y-3 sm:space-y-4">
-            {currentTab === 'assigned' ? (
-              getPaginatedRoutes(assignedRoutes, 'assigned').map(route => (
-                <RouteCard key={route._id} route={route} type="assigned" />
-              ))
-            ) : (
-              getPaginatedRoutes(pendingRoutes, 'pending').map(route => (
-                <RouteCard key={route._id} route={route} type="pending" />
-              ))
-            )}
-          </div>
-
-          {/* Pagination */}
-          <div className="mt-4 sm:mt-6">
-            <Pagination
-              totalItems={currentTab === 'assigned' ? assignedRoutes.length : pendingRoutes.length}
-              itemsPerPage={itemsPerPage}
-              currentPage={currentPage[currentTab]}
-              onPageChange={(_, page) => handlePageChange(currentTab, page)}
-              type={currentTab}
-            />
-          </div>
+          <ChannelFilter />
         </div>
+
+        {/* Routes List */}
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="space-y-4"
+        >
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
+            </div>
+          ) : (
+            <>
+              {currentTab === 'assigned' ? (
+                filterRoutesByChannel(getPaginatedRoutes(assignedRoutes, 'assigned')).map(route => (
+                  <RouteCard key={route.route_code} route={route} type="assigned" />
+                ))
+              ) : (
+                filterRoutesByChannel(getPaginatedRoutes(pendingRoutes, 'pending')).map(route => (
+                  <RouteCard key={route.route_code} route={route} type="pending" />
+                ))
+              )}
+              <Pagination
+                totalItems={currentTab === 'assigned' ? assignedRoutes.length : pendingRoutes.length}
+                itemsPerPage={itemsPerPage}
+                currentPage={currentPage[currentTab]}
+                onPageChange={(page) => handlePageChange(currentTab, page)}
+                type={currentTab}
+              />
+            </>
+          )}
+        </motion.div>
       </motion.div>
     </div>
   );

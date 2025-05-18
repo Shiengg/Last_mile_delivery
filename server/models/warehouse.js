@@ -11,21 +11,61 @@ const warehouseSchema = new mongoose.Schema({
         required: true
     },
     address: {
-        type: String
+        province_id: {
+            type: String,
+            required: true,
+            ref: 'Province'
+        },
+        district_id: {
+            type: String,
+            required: true,
+            ref: 'District'
+        },
+        ward_code: {
+            type: String,
+            required: true
+        },
+        street: {
+            type: String,
+            required: true
+        },
+        house_number: String,
+        latitude: Number,
+        longitude: Number
     },
-    province_code: {
+    capacity: {
+        max_orders: {
+            type: Number,
+            default: 1000
+        },
+        current_orders: {
+            type: Number,
+            default: 0
+        }
+    },
+    operating_hours: {
+        start: {
+            type: String,
+            default: '08:00'
+        },
+        end: {
+            type: String,
+            default: '18:00'
+        },
+        timezone: {
+            type: String,
+            default: 'Asia/Ho_Chi_Minh'
+        }
+    },
+    status: {
         type: String,
-        required: true,
-        ref: 'Province'
+        enum: ['active', 'inactive', 'maintenance'],
+        default: 'active'
     },
-    district_code: {
-        type: String,
-        required: true,
-        ref: 'District'
-    },
-    ward_code: {
-        type: Number,
-        required: true
+    contact: {
+        phone: String,
+        email: String,
+        manager_name: String
     }
 }, {
     timestamps: true

@@ -32,17 +32,17 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
     const R = 6371; // Radius of the earth in km
     const dLat = deg2rad(lat2 - lat1);
     const dLon = deg2rad(lon2 - lon1);
-    const a = 
-        Math.sin(dLat/2) * Math.sin(dLat/2) +
-        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
-        Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     const distance = R * c; // Distance in km
     return distance;
 };
 
 const deg2rad = (deg) => {
-    return deg * (Math.PI/180);
+    return deg * (Math.PI / 180);
 };
 
 exports.createRoute = async (req, res) => {
@@ -68,7 +68,7 @@ exports.createRoute = async (req, res) => {
 
         // Lấy thông tin chi tiết của shops theo thứ tự
         const shopDetails = await Promise.all(
-            shops.map(shop => 
+            shops.map(shop =>
                 Shop.findOne({ shop_id: shop.shop_id })
                     .select('shop_id shop_name latitude longitude')
             )
@@ -94,6 +94,7 @@ exports.createRoute = async (req, res) => {
         // Tạo route mới
         const route = new Route({
             route_code: await generateRouteId(),
+            channel: 'shop_direct',
             shops: shops.map((shop, index) => ({
                 shop_id: shop.shop_id,
                 order: index + 1  // Gán order theo thứ tự trong mảng
@@ -119,8 +120,8 @@ exports.createRoute = async (req, res) => {
                     latitude: shop.latitude,
                     longitude: shop.longitude
                 },
-                distance_to_next: index < routeDetails.sectionDistances.length 
-                    ? routeDetails.sectionDistances[index] 
+                distance_to_next: index < routeDetails.sectionDistances.length
+                    ? routeDetails.sectionDistances[index]
                     : null
             }))
         };
@@ -178,8 +179,8 @@ exports.getAllRoutes = async (req, res) => {
             .lean();
 
         // Lấy thông tin vehicle types
-        const vehicleTypes = await VehicleType.find({ 
-            code: { $in: routes.map(r => r.vehicle_type_id) } 
+        const vehicleTypes = await VehicleType.find({
+            code: { $in: routes.map(r => r.vehicle_type_id) }
         }).lean();
 
         // Tạo maps để dễ dàng lookup
@@ -307,7 +308,7 @@ exports.deleteRoute = async (req, res) => {
         console.log('Deleting route with ID:', id);
 
         const route = await Route.findById(id);
-        
+
         if (!route) {
             return res.status(404).json({
                 success: false,
@@ -465,7 +466,7 @@ exports.updateRoute = async (req, res) => {
         console.log('Updating route:', { id, vehicle_type_id, status });
 
         const route = await Route.findById(id);
-        
+
         if (!route) {
             return res.status(404).json({
                 success: false,

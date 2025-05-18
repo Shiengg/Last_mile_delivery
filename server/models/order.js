@@ -20,8 +20,55 @@ const orderSchema = new mongoose.Schema({
     },
     channel: {
         type: String,
-        enum: ['web', 'mobile', 'physical'],
-        default: 'web'
+        enum: ['ecommerce', 'warehouse', 'shop_direct'],
+        required: true
+    },
+    source: {
+        type: {
+            type: String,
+            enum: ['warehouse', 'shop'],
+            required: true
+        },
+        location_id: {
+            type: String,
+            required: true
+        },
+        address: {
+            province_id: String,
+            district_id: String,
+            ward_code: String,
+            street: String,
+            house_number: String
+        }
+    },
+    destination: {
+        receiver_name: {
+            type: String,
+            required: true
+        },
+        receiver_phone: {
+            type: String,
+            required: true
+        },
+        address: {
+            province_id: {
+                type: String,
+                required: true
+            },
+            district_id: {
+                type: String,
+                required: true
+            },
+            ward_code: {
+                type: String,
+                required: true
+            },
+            street: {
+                type: String,
+                required: true
+            },
+            house_number: String
+        }
     },
     status: {
         type: String,
@@ -33,6 +80,14 @@ const orderSchema = new mongoose.Schema({
         required: true,
         default: 0
     },
+    delivery_fee: {
+        type: Number,
+        default: 0
+    },
+    estimated_delivery_time: {
+        type: Date
+    },
+    notes: String
 }, {
     collection: 'Order',
     timestamps: true,

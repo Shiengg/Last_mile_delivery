@@ -18,7 +18,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import { AdminContext } from './contexts/AdminContext';
 import { Toaster } from 'react-hot-toast';
 import { NotificationProvider } from './contexts/NotificationContext';
-
+import ChannelManagement from './pages/ChannelManagement';
 function App() {
   return (
     <NotificationProvider>
@@ -58,6 +58,7 @@ function App() {
             <Route path="shops" element={<ShopManagement />} />
             <Route path="routes" element={<RouteManagement />} />
             <Route path="vehicle-types" element={<VehicleManagement />} />
+            <Route path="channels" element={<ChannelManagement />} />
           </Route>
 
           <Route
