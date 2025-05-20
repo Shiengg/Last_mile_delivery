@@ -4,7 +4,6 @@ const Shop = require('../models/Shop');
 // Get route by route_code
 exports.getRouteByCode = async (req, res) => {
   try {
-    console.log('Searching for route code:', req.params.code);
 
     // Validate route code format
     if (!req.params.code.match(/^RT\d{6}$/)) {
@@ -26,18 +25,15 @@ exports.getRouteByCode = async (req, res) => {
       });
     }
 
-    console.log('Found route:', route);
 
     // Lấy danh sách shop_ids
     const shopIds = route.shops.map(shop => shop.shop_id);
-    console.log('Shop IDs:', shopIds);
 
     // Tìm thông tin shops
-    const shops = await Shop.find({ 
-      shop_id: { $in: shopIds } 
+    const shops = await Shop.find({
+      shop_id: { $in: shopIds }
     }).lean();
 
-    console.log('Found shops:', shops);
 
     // Tạo map của shops
     const shopMap = {};
@@ -67,7 +63,6 @@ exports.getRouteByCode = async (req, res) => {
       shops: enrichedShops
     };
 
-    console.log('Final response data:', responseData);
 
     res.json({
       success: true,
@@ -113,7 +108,6 @@ exports.getRouteByCode = async (req, res) => {
 // Get route status
 exports.getRouteStatus = async (req, res) => {
   try {
-    console.log('Fetching status for route:', req.params.code);
 
     // Validate route code format
     if (!req.params.code.match(/^RT\d{6}$/)) {
@@ -135,7 +129,6 @@ exports.getRouteStatus = async (req, res) => {
       });
     }
 
-    console.log('Found route status:', route);
 
     res.json({
       success: true,

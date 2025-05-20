@@ -3,17 +3,16 @@ const mongoose = require('mongoose')
 
 const connectDB = async () => {
     try {
-        console.log('Connecting to database:', process.env.MONGODB_URI);
+
 
         const conn = await mongoose.connect(process.env.MONGODB_URI, {
             dbName: 'last_mile_delivery'
         });
 
-        console.log(`MongoDB Connected: ${conn.connection.host}`);
-        console.log(`Current database: ${conn.connection.db.databaseName}`);
+
 
         const collections = await conn.connection.db.listCollections().toArray();
-        console.log('Available collections:', collections.map(c => c.name));
+
     } catch (error) {
         console.error(`Error: ${error.message}`);
         process.exit(1);

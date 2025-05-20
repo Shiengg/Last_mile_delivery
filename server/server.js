@@ -17,7 +17,6 @@ const districtRoutes = require('./routes/districtRoutes');
 const wardRoutes = require('./routes/wardRoutes');
 const routeRoutes = require('./routes/routeRoutes');
 const customerRoutes = require('./routes/customerRoutes');
-const productRoutes = require('./routes/productRoutes');
 const orderRoutes = require('./routes/api/orders');
 const orderItemRoutes = require('./routes/orderItemRoutes');
 const warehouseRoutes = require('./routes/warehouseRoutes');
@@ -38,7 +37,6 @@ app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 // Debug middleware - log all requests
 app.use((req, res, next) => {
-    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
     next();
 });
 
@@ -54,7 +52,6 @@ app.use('/api/districts', districtRoutes);
 app.use('/api/wards', wardRoutes);
 app.use('/api/routes', routeRoutes);
 app.use('/api/customer', customerRoutes);
-app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/orders/:orderMongoId/items', orderItemRoutes);
 app.use('/api/warehouses', warehouseRoutes);

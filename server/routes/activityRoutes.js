@@ -5,7 +5,6 @@ const { protect, authorize } = require('../middlewares/authMiddleware');
 
 // Middleware để log requests
 router.use((req, res, next) => {
-    console.log(`Activity route accessed: ${req.method} ${req.path}`);
     next();
 });
 

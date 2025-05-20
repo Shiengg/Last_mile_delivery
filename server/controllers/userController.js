@@ -4,13 +4,10 @@ const cloudinary = require('../config/cloudinary');
 // Get user profile
 exports.getProfile = async (req, res) => {
   try {
-    console.log('Getting profile for user ID:', req.user._id); // Debug log
 
     const user = await User.findById(req.user._id).select('-password');
-    console.log('Found user profile:', user); // Debug log
 
     if (!user) {
-      console.log('User not found in database'); // Debug log
       return res.status(404).json({
         success: false,
         message: 'User not found'
@@ -79,9 +76,9 @@ exports.updateProfile = async (req, res) => {
     }
 
     // Nếu có avatar cũ và khác với avatar mặc định, xóa ảnh cũ trên Cloudinary
-    if (user.avatar && 
-        user.avatar !== 'https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff' &&
-        updateData.avatar) {
+    if (user.avatar &&
+      user.avatar !== 'https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff' &&
+      updateData.avatar) {
       try {
         const publicId = user.avatar.split('/').pop().split('.')[0];
         await cloudinary.uploader.destroy(`avatars/${publicId}`);
@@ -114,27 +111,25 @@ exports.updateProfile = async (req, res) => {
 };
 
 exports.getDeliveryStaff = async (req, res) => {
-    try {
-        console.log('Fetching delivery staff...'); // Debug log
+  try {
 
-        const deliveryStaff = await User.find({
-            role: 'DeliveryStaff'
-        })
-        .select('_id username fullName phone email status')
-        .lean();
+    const deliveryStaff = await User.find({
+      role: 'DeliveryStaff'
+    })
+      .select('_id username fullName phone email status')
+      .lean();
 
-        console.log('Found delivery staff:', deliveryStaff); // Debug log
 
-        res.json({
-            success: true,
-            data: deliveryStaff
-        });
-    } catch (error) {
-        console.error('Error fetching delivery staff:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Error fetching delivery staff',
-            error: error.message
-        });
-    }
+    res.json({
+      success: true,
+      data: deliveryStaff
+    });
+  } catch (error) {
+    console.error('Error fetching delivery staff:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching delivery staff',
+      error: error.message
+    });
+  }
 }; 
