@@ -92,6 +92,9 @@ router.post('/ecommerce/create', protect, authorize('Admin', 'Customer', 'Ecomme
             });
         }
 
+        // Tính tổng tiền từ items
+        const calculatedTotal = items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+
         // Tạo đơn hàng mới
         const newOrder = new Order({
             order_id: `EC-${Date.now()}`, // Prefix EC cho ecommerce
@@ -101,8 +104,8 @@ router.post('/ecommerce/create', protect, authorize('Admin', 'Customer', 'Ecomme
             source: source,
             destination: destination,
             status: 'pending',
-            total_price: order_details.total,
-            delivery_fee: order_details.delivery_fee || channelDoc.settings.delivery_fee,
+            total_price: calculatedTotal,
+            delivery_fee: order_details.delivery_fee || channelDoc.settings.delivery_fee || 0,
             estimated_delivery_time: order_details.estimated_delivery_time,
             notes: order_details.notes
         });
@@ -111,30 +114,38 @@ router.post('/ecommerce/create', protect, authorize('Admin', 'Customer', 'Ecomme
         console.log('Order data before save:', {
             order_id: newOrder.order_id,
             shop_id: newOrder.shop_id,
-            source: newOrder.source
+            source: newOrder.source,
+            total_price: newOrder.total_price
         });
 
         // Lưu đơn hàng
         await newOrder.save();
 
         // Tạo các order items
-        const orderItems = await Promise.all(items.map(item =>
-            OrderItem.create({
-                order_id: newOrder.order_id,
-                product_name: item.name,
-                product_sku: item.sku,
-                quantity: item.quantity,
-                price: item.price
-            })
-        ));
+        const orderItemDocs = items.map(item => ({
+            order_id: newOrder.order_id,
+            product_name: item.name,
+            product_sku: item.sku,
+            quantity: item.quantity,
+            price: item.price
+        }));
 
-        // Trả về response
+        // Lưu tất cả order items
+        await OrderItem.insertMany(orderItemDocs);
+
+        // Lấy order đã populate items để trả về
+        const populatedOrder = await Order.findById(newOrder._id).populate('items');
+
+        // Trả về response với đầy đủ thông tin
         res.status(201).json({
             success: true,
             message: 'Tạo đơn hàng thành công',
             data: {
+                order: populatedOrder,
                 order_id: newOrder.order_id,
                 status: newOrder.status,
+                total_price: newOrder.total_price,
+                items: populatedOrder.items,
                 estimated_delivery_time: newOrder.estimated_delivery_time,
                 tracking_url: `/tracking/${newOrder.order_id}`
             }
