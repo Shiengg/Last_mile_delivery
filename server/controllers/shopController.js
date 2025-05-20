@@ -27,6 +27,15 @@ exports.getAllShops = async (req, res) => {
             ];
         }
 
+        // Nếu limit lớn hơn 100, chỉ trả về các trường cần thiết để tối ưu hiệu suất
+        const projection = parseInt(limit) > 100 ? {
+            shop_id: 1,
+            shop_name: 1,
+            house_number: 1,
+            street: 1,
+            shop_type: 1,
+            status: 1
+        } : null;
 
         // Tính toán skip cho pagination
         const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -34,9 +43,8 @@ exports.getAllShops = async (req, res) => {
         // Đếm tổng số documents thỏa mãn query
         const total = await Shop.countDocuments(query);
 
-        // Lấy data với pagination
-        const shops = await Shop.find(query)
-            .select('shop_id shop_name country_id province_id district_id ward_code house_number street latitude longitude shop_type status')
+        // Lấy data với pagination và projection tối ưu
+        const shops = await Shop.find(query, projection)
             .sort({ shop_id: 1 })
             .skip(skip)
             .limit(parseInt(limit));

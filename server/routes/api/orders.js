@@ -97,7 +97,7 @@ router.post('/ecommerce/create', protect, authorize('Admin', 'Customer', 'Ecomme
 
         // Tạo đơn hàng mới
         const newOrder = new Order({
-            order_id: `EC-${Date.now()}`, // Prefix EC cho ecommerce
+            order_id: `${channel === 'warehouse' ? 'WH' : 'EC'}-${Date.now()}`, // Prefix WH cho warehouse, EC cho ecommerce
             customer_id: req.user._id.toString(), // Lấy user ID từ token
             channel: channel || 'ecommerce',
             shop_id: shop_id,
