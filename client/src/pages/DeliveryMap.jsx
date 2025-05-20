@@ -32,11 +32,11 @@ const routeStyles = {
 const createMarkerElement = (index, isFirst, isLast, total) => {
   const el = document.createElement('div');
   el.className = 'marker';
-  
+
   // Xác định màu dựa vào vị trí
   const backgroundColor = isFirst ? '#1B5E20' :  // Điểm đầu màu xanh lá đậm
-                         isLast ? '#B71C1C' :    // Điểm cuối màu đỏ đậm
-                         '#1976D2';              // Điểm giữa màu xanh dương
+    isLast ? '#B71C1C' :    // Điểm cuối màu đỏ đậm
+      '#1976D2';              // Điểm giữa màu xanh dương
 
   // Style cho marker container
   Object.assign(el.style, {
@@ -62,7 +62,7 @@ const createMarkerElement = (index, isFirst, isLast, total) => {
 const StopCard = ({ shop, index, total, isDarkMode }) => {
   const isFirst = index === 0;
   const isLast = index === total - 1;
-  
+
   return (
     <motion.div
       whileHover={{ scale: 1.02 }}
@@ -70,13 +70,12 @@ const StopCard = ({ shop, index, total, isDarkMode }) => {
         border border-gray-100 dark:border-gray-600 transition-all duration-200"
     >
       <div className="flex items-center gap-4">
-        <div 
+        <div
           className={`w-10 h-10 rounded-full flex items-center justify-center 
-            text-white font-medium shadow-sm transition-colors ${
-            isFirst ? 'bg-emerald-500 dark:bg-emerald-600' : 
-            isLast ? 'bg-red-500 dark:bg-red-600' : 
-            'bg-blue-500 dark:bg-blue-600'
-          }`}
+            text-white font-medium shadow-sm transition-colors ${isFirst ? 'bg-emerald-500 dark:bg-emerald-600' :
+              isLast ? 'bg-red-500 dark:bg-red-600' :
+                'bg-blue-500 dark:bg-blue-600'
+            }`}
         >
           {index + 1}
         </div>
@@ -136,13 +135,13 @@ const DeliveryMap = () => {
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
     localStorage.setItem('theme', !isDarkMode ? 'dark' : 'light');
-    
+
     if (mapRef.current) {
       const map = mapRef.current;
-      
+
       // Xóa map hiện tại
       map.remove();
-      
+
       // Tạo map mới với style mới
       const newMap = new mapboxgl.Map({
         container: mapContainerRef.current,
@@ -211,7 +210,7 @@ const DeliveryMap = () => {
           const isFirst = index === 0;
           const isLast = index === route.shops.length - 1;
           const el = createMarkerElement(index, isFirst, isLast, route.shops.length);
-          
+
           new mapboxgl.Marker(el)
             .setLngLat([shop.shop_details.longitude, shop.shop_details.latitude])
             .addTo(newMap);
@@ -223,7 +222,7 @@ const DeliveryMap = () => {
   const fetchRouteData = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5000/api/routes/${id}`, {
+      const response = await axios.get(`http://localhost:5000/api/routes/code/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
@@ -247,8 +246,8 @@ const DeliveryMap = () => {
 
       const map = new mapboxgl.Map({
         container: mapContainerRef.current,
-        style: isDarkMode ? 
-          'mapbox://styles/mapbox/dark-v11' : 
+        style: isDarkMode ?
+          'mapbox://styles/mapbox/dark-v11' :
           'mapbox://styles/mapbox/streets-v11',
         center: [routeData.shops[0].shop_details.longitude, routeData.shops[0].shop_details.latitude],
         zoom: 13
@@ -342,7 +341,7 @@ const DeliveryMap = () => {
         // Fit bounds với padding lớn hơn
         const bounds = new mapboxgl.LngLatBounds();
         coordinates.forEach(coord => bounds.extend(coord));
-        map.fitBounds(bounds, { 
+        map.fitBounds(bounds, {
           padding: {
             top: 100,
             bottom: 100,
@@ -363,7 +362,7 @@ const DeliveryMap = () => {
       {/* Header với thiết kế mới */}
       <div className="bg-white dark:bg-gray-800 shadow-sm px-6 py-4 flex items-center justify-between transition-colors">
         <div className="flex items-center space-x-4">
-          <button 
+          <button
             onClick={() => navigate(-1)}
             className="p-2.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-all duration-200 
               focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
@@ -378,9 +377,8 @@ const DeliveryMap = () => {
                 <h1 className="text-xl font-semibold text-gray-900 dark:text-white">
                   {route.route_code}
                 </h1>
-                <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                  getStatusColor(route.status)
-                }`}>
+                <span className={`px-2 py-1 text-xs font-medium rounded-full ${getStatusColor(route.status)
+                  }`}>
                   {route.status.charAt(0).toUpperCase() + route.status.slice(1)}
                 </span>
               </div>
@@ -401,7 +399,7 @@ const DeliveryMap = () => {
             </div>
           )}
         </div>
-        
+
         <div className="flex items-center space-x-3">
           {/* Dark mode toggle với animation */}
           <button
@@ -449,7 +447,7 @@ const DeliveryMap = () => {
             </h2>
             <div className="space-y-4">
               {route?.shops?.map((shop, index) => (
-                <StopCard 
+                <StopCard
                   key={shop.shop_details.shop_id}
                   shop={shop}
                   index={index}
@@ -491,7 +489,7 @@ const DeliveryMap = () => {
                   </div>
                   <div className="space-y-4">
                     {route?.shops?.map((shop, index) => (
-                      <StopCard 
+                      <StopCard
                         key={shop.shop_details.shop_id}
                         shop={shop}
                         index={index}

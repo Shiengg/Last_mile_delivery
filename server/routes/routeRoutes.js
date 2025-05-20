@@ -2,15 +2,16 @@ const express = require('express');
 const router = express.Router();
 const { protect, authorize } = require('../middlewares/authMiddleware');
 const Route = require('../models/Route');
-const { 
-    createRoute, 
-    getAllRoutes, 
-    updateRouteStatus, 
-    deleteRoute, 
-    updateRoute, 
+const {
+    createRoute,
+    getAllRoutes,
+    updateRouteStatus,
+    deleteRoute,
+    updateRoute,
     assignRoute,
     claimRoute,
-    getRouteById
+    getRouteById,
+    getRouteByCode
 } = require('../controllers/routeController');
 
 // Protect all routes
@@ -40,7 +41,7 @@ router.put('/:id', protect, authorize('Admin'), updateRoute);
 router.post('/assign', protect, authorize('Admin'), async (req, res) => {
     try {
         const { route_id, delivery_staff_id } = req.body;
-        
+
         // Validate input
         if (!route_id || !delivery_staff_id) {
             return res.status(400).json({
@@ -57,7 +58,7 @@ router.post('/assign', protect, authorize('Admin'), async (req, res) => {
                 status: 'assigned',
                 assigned_at: new Date()
             },
-            { 
+            {
                 new: true,
                 runValidators: true
             }
@@ -87,5 +88,6 @@ router.post('/assign', protect, authorize('Admin'), async (req, res) => {
 
 // Thêm route mới
 router.get('/:id', protect, getRouteById);
+router.get('/code/:code', protect, getRouteByCode);
 
 module.exports = router;
