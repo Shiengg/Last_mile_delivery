@@ -4,15 +4,15 @@ const { logActivity } = require('./activityController');
 exports.getAllShops = async (req, res) => {
     try {
         const { ward_code, status, page = 1, limit = 10, search } = req.query;
-        
+
         // Xây dựng query
         let query = {};
-        
+
         // Lọc theo ward_code nếu có
         if (ward_code) {
             query.ward_code = ward_code;
         }
-        
+
         // Lọc theo status nếu có
         if (status) {
             query.status = status;
@@ -27,7 +27,6 @@ exports.getAllShops = async (req, res) => {
             ];
         }
 
-        console.log('Shop query:', query);
 
         // Tính toán skip cho pagination
         const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -79,12 +78,12 @@ const getNextShopId = async (ward_code) => {
 
         // Lấy 3 số cuối của shop_id cuối cùng
         const lastNumber = parseInt(lastShop.shop_id.slice(-3));
-        
+
         // Kiểm tra xem có shop nào với ID mới không
         let nextNumber = lastNumber + 1;
         let newShopId;
         let existingShop;
-        
+
         do {
             newShopId = `${ward_code}${nextNumber.toString().padStart(3, '0')}`;
             existingShop = await Shop.findOne({ shop_id: newShopId });
@@ -147,10 +146,6 @@ exports.createShop = async (req, res) => {
 
 exports.updateShop = async (req, res) => {
     try {
-        console.log('Update shop request:', {
-            shopId: req.params.id,
-            updateData: req.body
-        });
 
         const shopData = req.body;
 
@@ -178,7 +173,7 @@ exports.updateShop = async (req, res) => {
         const updatedShop = await Shop.findByIdAndUpdate(
             req.params.id,
             formattedData,
-            { 
+            {
                 new: true,
                 runValidators: true
             }
@@ -191,7 +186,6 @@ exports.updateShop = async (req, res) => {
             });
         }
 
-        console.log('Shop updated successfully:', updatedShop);
 
         // Log activity
         await logActivity({

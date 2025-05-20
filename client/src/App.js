@@ -19,6 +19,7 @@ import { AdminContext } from './contexts/AdminContext';
 import { Toaster } from 'react-hot-toast';
 import { NotificationProvider } from './contexts/NotificationContext';
 import ChannelManagement from './pages/ChannelManagement';
+import ServicePage from './pages/ServicePage';
 function App() {
   return (
     <NotificationProvider>
@@ -103,6 +104,15 @@ function App() {
             element={
               <ProtectedRoute allowedRoles={['Admin', 'DeliveryStaff', 'Customer']}>
                 <Settings />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/services"
+            element={
+              <ProtectedRoute allowedRoles={['Admin', 'DeliveryStaff', 'Customer']}>
+                <ServicePage />
               </ProtectedRoute>
             }
           />

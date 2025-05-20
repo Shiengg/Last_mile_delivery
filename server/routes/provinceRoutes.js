@@ -5,12 +5,6 @@ const { protect, authorize } = require('../middlewares/authMiddleware');
 
 // Debug logging middleware
 router.use((req, res, next) => {
-    console.log('Province route accessed:', {
-        method: req.method,
-        path: req.path,
-        user: req.user?._id,
-        headers: req.headers
-    });
     next();
 });
 

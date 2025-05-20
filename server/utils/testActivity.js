@@ -15,7 +15,6 @@ const createTestActivity = async () => {
         });
 
         await testActivity.save();
-        console.log('Test activity created successfully');
     } catch (error) {
         console.error('Error creating test activity:', error);
     }

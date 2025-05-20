@@ -305,7 +305,6 @@ exports.updateRouteStatus = async (req, res) => {
 exports.deleteRoute = async (req, res) => {
     try {
         const { id } = req.params;
-        console.log('Deleting route with ID:', id);
 
         const route = await Route.findById(id);
 
@@ -350,7 +349,6 @@ exports.deleteRoute = async (req, res) => {
 exports.assignRoute = async (req, res) => {
     try {
         const { route_id, delivery_staff_id } = req.body;
-        console.log('Assigning route:', { route_id, delivery_staff_id });
 
         // Validate input
         if (!route_id || !delivery_staff_id) {
@@ -378,7 +376,6 @@ exports.assignRoute = async (req, res) => {
 
         // Kiểm tra delivery staff tồn tại và có role phù hợp
         const deliveryStaff = await User.findById(delivery_staff_id);
-        console.log('Found delivery staff:', deliveryStaff);
 
         if (!deliveryStaff) {
             return res.status(404).json({
@@ -463,7 +460,6 @@ exports.updateRoute = async (req, res) => {
         const { id } = req.params;
         const { vehicle_type_id, status } = req.body;
 
-        console.log('Updating route:', { id, vehicle_type_id, status });
 
         const route = await Route.findById(id);
 
@@ -486,13 +482,10 @@ exports.updateRoute = async (req, res) => {
 
         // Kiểm tra luồng chuyển đổi trạng thái
         if (status && status !== route.status) {
-            console.log('Current status:', route.status);
-            console.log('New status:', status);
-            console.log('Allowed transitions:', ALLOWED_STATUS_TRANSITIONS[route.status]);
+
 
             const allowedNextStatuses = ALLOWED_STATUS_TRANSITIONS[route.status] || [];
             if (!allowedNextStatuses.includes(status)) {
-                console.log('Invalid transition detected');
                 return res.status(400).json({
                     success: false,
                     message: `Cannot change status from ${route.status} to ${status}. Allowed next statuses are: ${allowedNextStatuses.join(', ')}`

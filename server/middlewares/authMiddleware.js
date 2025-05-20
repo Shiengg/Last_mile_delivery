@@ -5,7 +5,6 @@ exports.protect = async (req, res, next) => {
     try {
         // Get token from header
         const token = req.headers.authorization?.split(' ')[1];
-        console.log('Received token:', token); // Debug log
 
         if (!token) {
             return res.status(401).json({
@@ -17,11 +16,8 @@ exports.protect = async (req, res, next) => {
         try {
             // Verify token
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            console.log('Decoded token:', decoded); // Debug log
-
             // Get user from token
             const user = await User.findById(decoded.id);
-            console.log('Found user:', user); // Debug log
 
             if (!user) {
                 return res.status(401).json({

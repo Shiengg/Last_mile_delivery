@@ -6,7 +6,7 @@ const mongoose = require('mongoose');
 
 exports.getDashboardStats = async (req, res) => {
     try {
-        console.log('Fetching dashboard stats...');
+
 
         // Sử dụng Promise.all để thực hiện các truy vấn đồng thời
         const [shopCount, routeCount, vehicleCount] = await Promise.all([
@@ -15,15 +15,10 @@ exports.getDashboardStats = async (req, res) => {
             VehicleType.countDocuments()
         ]);
 
-        console.log('Collection counts:', {
-            shops: shopCount,
-            routes: routeCount,
-            vehicles: vehicleCount
-        });
 
         // Thêm query để đếm số DeliveryStaff
         const deliveryStaffCount = await User.countDocuments({ role: 'DeliveryStaff' });
-        
+
         const stats = {
             shops: shopCount,
             routes: routeCount,

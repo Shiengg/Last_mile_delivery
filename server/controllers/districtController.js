@@ -2,15 +2,13 @@ const District = require('../models/District');
 
 exports.getAllDistricts = async (req, res) => {
     try {
-        console.log('getAllDistricts called by user:', req.user?._id);
-        console.log('Query params:', req.query);
-        
+
         const { province_id } = req.query;
-        
+
         let query = {};
         if (province_id) {
             const normalizedProvinceId = province_id.replace(/^0+/, '');
-            query = { 
+            query = {
                 $or: [
                     { province_id: province_id },
                     { province_id: normalizedProvinceId },
@@ -18,15 +16,15 @@ exports.getAllDistricts = async (req, res) => {
                 ]
             };
         }
-        
-        console.log('MongoDB query:', query);
-        
+
+
+
         const districts = await District.find(query)
             .select('code name province_id')
             .sort({ name: 1 })
             .lean();
 
-        console.log(`Found ${districts.length} districts:`, districts);
+
 
         const transformedDistricts = districts.map(district => ({
             district_id: district.code,
@@ -34,7 +32,7 @@ exports.getAllDistricts = async (req, res) => {
             province_id: district.province_id
         }));
 
-        console.log('Sending transformed districts:', transformedDistricts);
+
 
         res.json({
             success: true,

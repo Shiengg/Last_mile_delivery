@@ -4,12 +4,10 @@ const User = require('../models/User');
 
 exports.login = async (req, res) => {
     try {
-        console.log('Login attempt:', req.body);
         const { username, password } = req.body;
 
         // Find user
         const user = await User.findOne({ username });
-        console.log('Found user:', user ? 'Yes' : 'No');
 
         if (!user) {
             return res.status(401).json({
