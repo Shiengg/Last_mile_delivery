@@ -20,25 +20,88 @@ import {
     TableHead,
     TableRow,
     Paper,
-    Chip
+    Chip,
+    CircularProgress
 } from '@mui/material';
 import { Add as AddIcon, Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
+import axios from 'axios';
+
+// Configure axios
+const api = axios.create({
+    baseURL: 'http://localhost:5000',
+    headers: {
+        'Content-Type': 'application/json'
+    },
+    withCredentials: true
+});
+
+// Add request interceptor to include token
+api.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    }
+);
 
 const ChannelManagement = () => {
     const theme = useTheme();
     const [channels, setChannels] = useState([
-        { id: 'web', name: 'Web Channel', status: 'active', orders: 150 },
-        { id: 'mobile', name: 'Mobile App', status: 'active', orders: 89 },
-        { id: 'physical', name: 'Physical Store', status: 'active', orders: 45 }
+        { id: 'ecommerce', name: 'E-commerce', status: 'active', orders: 0 },
+        { id: 'warehouse', name: 'Warehouse', status: 'active', orders: 0 },
+        { id: 'shop_direct', name: 'Shop Direct', status: 'active', orders: 0 }
     ]);
     const [openDialog, setOpenDialog] = useState(false);
     const [selectedChannel, setSelectedChannel] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [orders, setOrders] = useState([]);
     const [formData, setFormData] = useState({
         name: '',
         description: '',
         status: 'active'
     });
+
+    useEffect(() => {
+        fetchOrders();
+    }, []);
+
+    const fetchOrders = async () => {
+        try {
+            setLoading(true);
+            const response = await api.get('/api/orders', {
+                params: {
+                    limit: 1000 // Get all orders for statistics
+                }
+            });
+
+            if (response.data.success) {
+                setOrders(response.data.data);
+
+                // Update channel statistics
+                const ordersByChannel = response.data.data.reduce((acc, order) => {
+                    acc[order.channel] = (acc[order.channel] || 0) + 1;
+                    return acc;
+                }, {});
+
+                setChannels(prevChannels =>
+                    prevChannels.map(channel => ({
+                        ...channel,
+                        orders: ordersByChannel[channel.id] || 0
+                    }))
+                );
+            }
+        } catch (error) {
+            console.error('Error fetching orders:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleOpenDialog = (channel = null) => {
         if (channel) {
@@ -68,6 +131,14 @@ const ChannelManagement = () => {
         // Handle channel creation/update logic here
         handleCloseDialog();
     };
+
+    if (loading) {
+        return (
+            <Container maxWidth="lg" sx={{ mt: 4, mb: 4, display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+                <CircularProgress />
+            </Container>
+        );
+    }
 
     return (
         <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
@@ -112,42 +183,43 @@ const ChannelManagement = () => {
                     </Grid>
                 </Grid>
 
-                {/* Channel List */}
+                {/* Recent Orders List */}
                 <Grid item xs={12}>
+                    <Typography variant="h6" sx={{ mb: 2 }}>Recent Orders</Typography>
                     <TableContainer component={Paper}>
                         <Table>
                             <TableHead>
                                 <TableRow>
-                                    <TableCell>Channel Name</TableCell>
-                                    <TableCell>Description</TableCell>
+                                    <TableCell>Order ID</TableCell>
+                                    <TableCell>Channel</TableCell>
                                     <TableCell>Status</TableCell>
-                                    <TableCell>Orders</TableCell>
-                                    <TableCell align="right">Actions</TableCell>
+                                    <TableCell>Total Price</TableCell>
+                                    <TableCell>Created At</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
-                                {channels.map((channel) => (
-                                    <TableRow key={channel.id}>
-                                        <TableCell>{channel.name}</TableCell>
-                                        <TableCell>{channel.description || '-'}</TableCell>
+                                {orders.slice(0, 10).map((order) => (
+                                    <TableRow key={order._id}>
+                                        <TableCell>{order.order_id}</TableCell>
                                         <TableCell>
                                             <Chip
-                                                label={channel.status}
-                                                color={channel.status === 'active' ? 'success' : 'error'}
+                                                label={order.channel}
+                                                color="primary"
                                                 size="small"
                                             />
                                         </TableCell>
-                                        <TableCell>{channel.orders}</TableCell>
-                                        <TableCell align="right">
-                                            <IconButton
+                                        <TableCell>
+                                            <Chip
+                                                label={order.status}
+                                                color={order.status === 'delivered' ? 'success' :
+                                                    order.status === 'pending' ? 'warning' :
+                                                        order.status === 'cancelled' ? 'error' : 'default'}
                                                 size="small"
-                                                onClick={() => handleOpenDialog(channel)}
-                                            >
-                                                <EditIcon />
-                                            </IconButton>
-                                            <IconButton size="small" color="error">
-                                                <DeleteIcon />
-                                            </IconButton>
+                                            />
+                                        </TableCell>
+                                        <TableCell>${order.total_price.toFixed(2)}</TableCell>
+                                        <TableCell>
+                                            {new Date(order.createdAt).toLocaleDateString()}
                                         </TableCell>
                                     </TableRow>
                                 ))}
