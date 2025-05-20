@@ -10,7 +10,7 @@ const AddRouteModal = ({ onClose, onAdd, vehicleTypes }) => {
         ward_code: '',
         vehicle_type_id: '',
     });
-    
+
     const [selectedShops, setSelectedShops] = useState([]);
     const [provinces, setProvinces] = useState([]);
     const [districts, setDistricts] = useState([]);
@@ -18,6 +18,13 @@ const AddRouteModal = ({ onClose, onAdd, vehicleTypes }) => {
     const [shops, setShops] = useState([]);
     const [filteredShops, setFilteredShops] = useState([]);
     const [isClosing, setIsClosing] = useState(false);
+    const [pagination, setPagination] = useState({
+        currentPage: 1,
+        totalPages: 1,
+        totalItems: 0,
+        limit: 20
+    });
+    const [isLoading, setIsLoading] = useState(false);
 
     // Fetch provinces when component mounts
     useEffect(() => {
@@ -94,29 +101,59 @@ const AddRouteModal = ({ onClose, onAdd, vehicleTypes }) => {
             }
 
             try {
+                setIsLoading(true);
                 const token = localStorage.getItem('token');
                 const response = await axios.get('http://localhost:5000/api/shops', {
                     params: {
                         ward_code: formData.ward_code,
-                        status: 'active'
+                        status: 'active',
+                        page: pagination.currentPage,
+                        limit: pagination.limit
                     },
                     headers: { Authorization: `Bearer ${token}` }
                 });
 
                 if (response.data.success) {
                     const shopData = response.data.data;
-                    console.log('Fetched shops:', shopData);
-                    setShops(shopData);
-                    setFilteredShops(shopData);
+                    setPagination({
+                        ...pagination,
+                        totalPages: response.data.pagination.totalPages,
+                        totalItems: response.data.pagination.total
+                    });
+                    setShops(prevShops => {
+                        // Nếu là trang đầu tiên, thay thế hoàn toàn
+                        if (pagination.currentPage === 1) {
+                            return shopData;
+                        }
+                        // Nếu không, thêm vào danh sách hiện tại
+                        return [...prevShops, ...shopData];
+                    });
+                    setFilteredShops(prevShops => {
+                        if (pagination.currentPage === 1) {
+                            return shopData;
+                        }
+                        return [...prevShops, ...shopData];
+                    });
                 }
             } catch (error) {
                 console.error('Error fetching shops:', error);
                 toast.error('Failed to load shops');
+            } finally {
+                setIsLoading(false);
             }
         };
 
         fetchShops();
-    }, [formData.ward_code]);
+    }, [formData.ward_code, pagination.currentPage]);
+
+    const loadMoreShops = () => {
+        if (pagination.currentPage < pagination.totalPages && !isLoading) {
+            setPagination(prev => ({
+                ...prev,
+                currentPage: prev.currentPage + 1
+            }));
+        }
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
@@ -160,20 +197,18 @@ const AddRouteModal = ({ onClose, onAdd, vehicleTypes }) => {
     };
 
     return (
-        <div 
-            className={`fixed inset-0 z-50 ${
-                isClosing ? 'animate-fade-out' : 'animate-fade-in'
-            }`}
-        >
-            <div 
-                className={`absolute inset-0 bg-gray-600 bg-opacity-50 ${
-                    isClosing ? 'animate-modal-overlay-hide' : 'animate-modal-overlay-show'
+        <div
+            className={`fixed inset-0 z-50 ${isClosing ? 'animate-fade-out' : 'animate-fade-in'
                 }`}
+        >
+            <div
+                className={`absolute inset-0 bg-gray-600 bg-opacity-50 ${isClosing ? 'animate-modal-overlay-hide' : 'animate-modal-overlay-show'
+                    }`}
                 onClick={handleClose}
             />
 
             <div className="relative min-h-screen flex items-center justify-center p-4">
-                <div 
+                <div
                     className={`relative w-[95%] md:w-[800px] bg-white rounded-xl shadow-2xl 
                         ${isClosing ? 'animate-slide-down' : 'animate-slide-up'}`}
                 >
@@ -183,7 +218,7 @@ const AddRouteModal = ({ onClose, onAdd, vehicleTypes }) => {
                                 <h3 className="text-2xl font-semibold text-gray-800">Create New Route</h3>
                                 <p className="mt-1 text-sm text-gray-500">Fill in the details to create a new delivery route</p>
                             </div>
-                            <button 
+                            <button
                                 onClick={handleClose}
                                 className="p-2 hover:bg-gray-100 rounded-full transition-colors duration-200 group"
                             >
@@ -304,23 +339,22 @@ const AddRouteModal = ({ onClose, onAdd, vehicleTypes }) => {
                                         <span className="text-xs ml-2">(Minimum 2 required)</span>
                                     </div>
                                 </div>
-                                
+
                                 <div className="border rounded-lg bg-white max-h-[300px] overflow-y-auto shadow-inner">
                                     {filteredShops.map((shop) => {
                                         const isSelected = selectedShops.some(s => s.shop_id === shop.shop_id);
                                         return (
                                             <div
                                                 key={shop.shop_id}
-                                                className={`p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 transition-colors duration-200 ${
-                                                    isSelected ? 'bg-blue-50 hover:bg-blue-100' : ''
-                                                }`}
+                                                className={`p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 transition-colors duration-200 ${isSelected ? 'bg-blue-50 hover:bg-blue-100' : ''
+                                                    }`}
                                                 onClick={() => handleShopSelect(shop)}
                                             >
                                                 <div className="flex items-center space-x-3">
                                                     <input
                                                         type="checkbox"
                                                         checked={isSelected}
-                                                        onChange={() => {}}
+                                                        onChange={() => { }}
                                                         className="h-5 w-5 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
                                                     />
                                                     <div className="flex-1">
@@ -339,11 +373,27 @@ const AddRouteModal = ({ onClose, onAdd, vehicleTypes }) => {
                                             </div>
                                         );
                                     })}
-                                    {filteredShops.length === 0 && (
+                                    {filteredShops.length === 0 && !isLoading && (
                                         <div className="p-8 text-center text-gray-500">
-                                            {formData.ward_code 
-                                                ? 'No active shops found in this area' 
+                                            {formData.ward_code
+                                                ? 'No active shops found in this area'
                                                 : 'Please select a ward to view available shops'}
+                                        </div>
+                                    )}
+                                    {isLoading && (
+                                        <div className="p-4 text-center text-gray-500">
+                                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+                                            <p className="mt-2">Loading shops...</p>
+                                        </div>
+                                    )}
+                                    {!isLoading && pagination.currentPage < pagination.totalPages && (
+                                        <div className="p-3 text-center border-t">
+                                            <button
+                                                onClick={loadMoreShops}
+                                                className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+                                            >
+                                                Load More Shops ({pagination.totalItems - filteredShops.length} remaining)
+                                            </button>
                                         </div>
                                     )}
                                 </div>
