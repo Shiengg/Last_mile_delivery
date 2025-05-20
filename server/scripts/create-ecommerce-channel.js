@@ -9,10 +9,10 @@ const createEcommerceChannel = async () => {
         console.log('Connected to MongoDB');
 
         const ecommerceChannel = {
-            code: 'ecommerce',
-            name: 'E-commerce Channel',
-            description: 'Channel for e-commerce orders',
-            type: 'online',
+            code: 'warehouse',
+            name: 'Warehouse Channel',
+            description: 'Channel for warehouse orders',
+            type: 'offline',
             settings: {
                 delivery_priority: 2,
                 max_delivery_time: 180, // 3 hours in minutes
@@ -28,16 +28,16 @@ const createEcommerceChannel = async () => {
         };
 
         // Check if channel already exists
-        const existingChannel = await Channel.findOne({ code: 'ecommerce' });
+        const existingChannel = await Channel.findOne({ code: 'warehouse' });
         if (existingChannel) {
             // Update if exists
             Object.assign(existingChannel, ecommerceChannel);
             await existingChannel.save();
-            console.log('E-commerce channel updated successfully');
+            console.log('Warehouse channel updated successfully');
         } else {
             // Create new if not exists
             await Channel.create(ecommerceChannel);
-            console.log('E-commerce channel created successfully');
+            console.log('Warehouse channel created successfully');
         }
 
         process.exit(0);

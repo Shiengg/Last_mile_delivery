@@ -47,7 +47,7 @@ const shopSchema = new mongoose.Schema({
     },
     shop_type: {
         type: String,
-        enum: ['retail', 'wholesale', 'other'],
+        enum: ['retail', 'warehouse', 'other'],
         default: 'retail'
     },
     categories: [{
