@@ -21,6 +21,8 @@ const orderRoutes = require('./routes/orderRoutes');
 const orderItemRoutes = require('./routes/orderItemRoutes');
 const warehouseRoutes = require('./routes/warehouseRoutes');
 const externalOrderRoutes = require('./routes/api/orders');
+const customerAddressRoutes = require('./routes/customerAddressRoutes');
+
 
 
 const app = express();
@@ -57,6 +59,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/orders/:orderMongoId/items', orderItemRoutes);
 app.use('/api/warehouses', warehouseRoutes);
 app.use('/api/external/orders', externalOrderRoutes);
+app.use('/api/customer-addresses', customerAddressRoutes);
 
 // Test route
 app.get('/', (req, res) => {

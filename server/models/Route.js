@@ -11,6 +11,51 @@ const routeSchema = new mongoose.Schema({
         enum: ['ecommerce', 'warehouse', 'shop_direct'],
         required: true
     },
+    order_id: {
+        type: String,
+        sparse: true // Cho phép null và tạo unique index
+    },
+    // Fields cho ecommerce route
+    source: {
+        type: {
+            type: String,
+            enum: ['warehouse', 'shop'],
+            required: false
+        },
+        location_id: {
+            type: String,
+            required: false
+        },
+        address: {
+            province_id: String,
+            district_id: String,
+            ward_code: String,
+            street: String,
+            house_number: String
+        },
+        latitude: Number,
+        longitude: Number
+    },
+    destination: {
+        receiver_name: {
+            type: String,
+            required: false
+        },
+        receiver_phone: {
+            type: String,
+            required: false
+        },
+        address: {
+            province_id: String,
+            district_id: String,
+            ward_code: String,
+            street: String,
+            house_number: String
+        },
+        latitude: Number,
+        longitude: Number
+    },
+    // Mảng shops cho route
     shops: [{
         shop_id: {
             type: String,

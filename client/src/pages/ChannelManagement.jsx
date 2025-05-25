@@ -262,6 +262,170 @@ const ChannelManagement = () => {
         setOrderItems([]);
     };
 
+    const handleCreateRoute = async (order) => {
+        try {
+            console.log('Creating route for order:', {
+                order_id: order.order_id,
+                channel: order.channel,
+                source: order.source,
+                shop_id: order.shop_id,
+                destination: order.destination
+            });
+
+            // Get province data for address lookup
+            const provinces = getProvincesWithDetail();
+
+            // Get source and destination address details
+            const sourceProvince = provinces[order.source.address.province_id];
+            const sourceDistrict = sourceProvince?.districts[order.source.address.district_id];
+            const sourceWard = sourceDistrict?.wards[order.source.address.ward_code];
+
+            if (!sourceProvince || !sourceDistrict || !sourceWard) {
+                throw new Error('Invalid source address data');
+            }
+
+            const destProvince = provinces[order.destination.address.province_id];
+            const destDistrict = destProvince?.districts[order.destination.address.district_id];
+            const destWard = destDistrict?.wards[order.destination.address.ward_code];
+
+            if (!destProvince || !destDistrict || !destWard) {
+                throw new Error('Invalid destination address data');
+            }
+
+            // Generate a unique shop_id using timestamp
+            const timestamp = Date.now().toString().slice(-6);
+            const uniqueShopId = `${order.destination.address.ward_code}${timestamp}`;
+
+            // Create customer address data
+            const customerAddressData = {
+                shop_id: uniqueShopId,
+                shop_name: order.destination.receiver_name,
+                province_id: order.destination.address.province_id,
+                district_id: order.destination.address.district_id,
+                ward_code: order.destination.address.ward_code,
+                house_number: order.destination.address.house_number,
+                street: order.destination.address.street,
+                full_address: `${order.destination.address.house_number} ${order.destination.address.street}, ${destWard.name}, ${destDistrict.name}, ${destProvince.name}`,
+            };
+
+            console.log('Customer address data:', customerAddressData);
+
+            // Try to find existing customer address first
+            let customerAddress;
+            try {
+                const findResponse = await api.get('/api/customer-addresses/find', {
+                    params: {
+                        province_id: order.destination.address.province_id,
+                        district_id: order.destination.address.district_id,
+                        ward_code: order.destination.address.ward_code,
+                        house_number: order.destination.address.house_number,
+                        street: order.destination.address.street
+                    }
+                });
+                customerAddress = findResponse.data.data;
+                console.log('Found existing customer address:', customerAddress);
+            } catch (error) {
+                console.log('No existing customer address found, creating new one');
+            }
+
+            // If no existing address found, create new one
+            if (!customerAddress) {
+                const createResponse = await api.post('/api/customer-addresses', customerAddressData);
+                if (!createResponse.data.success) {
+                    throw new Error('Failed to create customer address');
+                }
+                customerAddress = createResponse.data.data;
+                console.log('Created new customer address:', customerAddress);
+            }
+
+            // Validate source shop_id
+            const sourceShopId = order.source.type === 'shop' ? order.shop_id : order.source.location_id;
+            console.log('Source shop ID validation:', {
+                type: order.source.type,
+                shop_id: order.shop_id,
+                location_id: order.source.location_id,
+                final_source_id: sourceShopId
+            });
+
+            if (!sourceShopId) {
+                throw new Error('Source shop ID is missing');
+            }
+
+            // Create route with the customer address
+            const routeData = {
+                channel: order.channel,
+                order_id: order.order_id,
+                source: {
+                    type: order.source.type,
+                    location_id: order.source.type === 'shop' ? order.shop_id : order.source.location_id,
+                    address: {
+                        province_id: order.source.address.province_id,
+                        district_id: order.source.address.district_id,
+                        ward_code: order.source.address.ward_code,
+                        street: order.source.address.street,
+                        house_number: order.source.address.house_number
+                    }
+                },
+                destination: {
+                    receiver_name: order.destination.receiver_name,
+                    receiver_phone: order.destination.receiver_phone,
+                    address: {
+                        province_id: order.destination.address.province_id,
+                        district_id: order.destination.address.district_id,
+                        ward_code: order.destination.address.ward_code,
+                        street: order.destination.address.street,
+                        house_number: order.destination.address.house_number
+                    }
+                },
+                shops: [
+                    {
+                        shop_id: sourceShopId,
+                        order: 1,
+                        status: 'pending'
+                    },
+                    {
+                        shop_id: customerAddress.shop_id,
+                        order: 2,
+                        status: 'pending'
+                    }
+                ],
+                vehicle_type_id: 'MOTOBIKE', // Default vehicle type
+                status: 'pending'
+            };
+
+            // Log route data before sending
+            console.log('Sending route data:', JSON.stringify(routeData, null, 2));
+
+            try {
+                const routeResponse = await api.post('/api/routes', routeData);
+                console.log('Route response:', routeResponse);
+
+                if (routeResponse.data.success) {
+                    toast.success('Route created successfully');
+                    handleCloseDetails(); // Close the order details modal
+                    fetchOrders(); // Refresh the orders list
+                } else {
+                    throw new Error(routeResponse.data.message || 'Failed to create route');
+                }
+            } catch (error) {
+                // Log detailed error information
+                console.error('Route creation error details:', {
+                    message: error.message,
+                    response: error.response?.data,
+                    status: error.response?.status,
+                    statusText: error.response?.statusText,
+                    data: error.response?.data
+                });
+                throw error;
+            }
+        } catch (error) {
+            console.error('Error creating route:', error);
+            // Show more detailed error message to user
+            const errorMessage = error.response?.data?.message || error.message;
+            toast.error(`Failed to create route: ${errorMessage}`);
+        }
+    };
+
     if (loading) {
         return (
             <Container maxWidth="lg" sx={{ mt: 4, mb: 4, display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
@@ -792,6 +956,16 @@ const ChannelManagement = () => {
                         </DialogContent>
                         <DialogActions>
                             <Button onClick={handleCloseDetails}>Close</Button>
+                            {selectedOrder && selectedOrder.status === 'pending' && (
+                                <Button
+                                    variant="contained"
+                                    color="primary"
+                                    onClick={() => handleCreateRoute(selectedOrder)}
+                                    startIcon={<FiTruck />}
+                                >
+                                    Create Route
+                                </Button>
+                            )}
                         </DialogActions>
                     </>
                 )}
