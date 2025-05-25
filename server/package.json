@@ -4,7 +4,7 @@
     "description": "",
     "main": "index.js",
     "scripts": {
-        "start": "node server.js",
+        "start": "nodemon server.js",
         "dev": "nodemon server.js"
     },
     "keywords": [],
@@ -22,6 +22,8 @@
         "framer-motion": "^12.11.0",
         "jsonwebtoken": "^9.0.2",
         "mongoose": "^8.13.2",
-        "socket.io": "^4.8.1"
+        "nodemon": "^3.1.10",
+        "socket.io": "^4.8.1",
+        "vietnam-provinces": "^0.0.4"
     }
 }

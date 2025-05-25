@@ -1,6 +1,7 @@
 const Route = require('../models/Route');
 const Shop = require('../models/Shop');
 const VehicleType = require('../models/VehicleType');
+const Order = require('../models/order');
 const mapService = require('../services/mapService');
 const { generateRouteId } = require('../utils/idGenerator');
 const User = require('../models/User');
@@ -47,13 +48,22 @@ const deg2rad = (deg) => {
 
 exports.createRoute = async (req, res) => {
     try {
-        const { shops, vehicle_type_id } = req.body;
+        console.log('Creating route with data:', req.body);
+        const { order_id, shops, vehicle_type_id, channel } = req.body;
 
         // Validate input
         if (!shops || !Array.isArray(shops) || shops.length < 2) {
             return res.status(400).json({
                 success: false,
                 message: 'At least 2 shops are required for a route'
+            });
+        }
+
+        // Validate channel
+        if (!channel || !['ecommerce', 'warehouse', 'shop_direct'].includes(channel)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid channel. Must be one of: ecommerce, warehouse, shop_direct'
             });
         }
 
@@ -66,19 +76,38 @@ exports.createRoute = async (req, res) => {
             });
         }
 
+        console.log('Searching for shops with IDs:', shops.map(s => s.shop_id));
         // Lấy thông tin chi tiết của shops theo thứ tự
         const shopDetails = await Promise.all(
-            shops.map(shop =>
-                Shop.findOne({ shop_id: shop.shop_id })
-                    .select('shop_id shop_name latitude longitude')
-            )
+            shops.map(async shop => {
+                const foundShop = await Shop.findOne({ shop_id: shop.shop_id })
+                    .select('shop_id shop_name latitude longitude');
+                console.log(`Shop search result for ${shop.shop_id}:`, foundShop);
+                return foundShop;
+            })
         );
 
         // Kiểm tra shops tồn tại
-        if (shopDetails.some(shop => !shop)) {
+        const invalidShops = shops.filter((shop, index) => !shopDetails[index]);
+        if (invalidShops.length > 0) {
+            console.log('Invalid shops found:', invalidShops);
             return res.status(400).json({
                 success: false,
-                message: 'One or more shop IDs are invalid'
+                message: `One or more shop IDs are invalid: ${invalidShops.map(s => s.shop_id).join(', ')}`
+            });
+        }
+
+        // Kiểm tra tọa độ shops
+        const invalidCoordinates = shopDetails.filter(shop =>
+            !shop.latitude || !shop.longitude ||
+            isNaN(parseFloat(shop.latitude)) || isNaN(parseFloat(shop.longitude))
+        );
+
+        if (invalidCoordinates.length > 0) {
+            console.log('Shops with invalid coordinates:', invalidCoordinates);
+            return res.status(400).json({
+                success: false,
+                message: `Missing or invalid coordinates for shops: ${invalidCoordinates.map(s => s.shop_id).join(', ')}`
             });
         }
 
@@ -88,13 +117,15 @@ exports.createRoute = async (req, res) => {
             longitude: parseFloat(shop.longitude)
         }));
 
+        console.log('Calculating route with waypoints:', waypoints);
         // Tính toán route với HERE Maps API
         const routeDetails = await mapService.calculateRouteDetails(waypoints);
 
         // Tạo route mới
         const route = new Route({
             route_code: await generateRouteId(),
-            channel: 'shop_direct',
+            channel: channel,
+            order_id: order_id,
             shops: shops.map((shop, index) => ({
                 shop_id: shop.shop_id,
                 order: index + 1  // Gán order theo thứ tự trong mảng
@@ -106,7 +137,30 @@ exports.createRoute = async (req, res) => {
             status: 'pending'
         });
 
+        console.log('Attempting to save route:', route);
         await route.save();
+
+        // Update order status to processing if order_id exists
+        if (order_id) {
+            const order = await Order.findOne({ order_id });
+            if (order && order.status === 'pending') {
+                order.status = 'processing';
+                await order.save();
+
+                // Log activity for order status change
+                await logActivity(
+                    'UPDATE',
+                    'ORDER',
+                    `Order ${order_id} status changed to processing after route creation`,
+                    req.user._id,
+                    {
+                        entityId: order._id,
+                        oldStatus: 'pending',
+                        newStatus: 'processing'
+                    }
+                );
+            }
+        }
 
         // Tạo response với thông tin chi tiết
         const routeWithDetails = {
@@ -272,6 +326,46 @@ exports.updateRouteStatus = async (req, res) => {
             { new: true }
         ).populate('delivery_staff_id', 'username fullName');
 
+        // Update order status based on route status if order exists
+        if (route.order_id) {
+            const order = await Order.findOne({ order_id: route.order_id });
+            if (order) {
+                let newOrderStatus = order.status;
+
+                switch (status) {
+                    case 'delivered':
+                        if (order.status === 'shipping') {
+                            newOrderStatus = 'delivered';
+                        }
+                        break;
+                    case 'cancelled':
+                        newOrderStatus = 'cancelled';
+                        break;
+                    case 'failed':
+                        newOrderStatus = 'failed';
+                        break;
+                }
+
+                if (newOrderStatus !== order.status) {
+                    order.status = newOrderStatus;
+                    await order.save();
+
+                    // Log activity for order status change
+                    await logActivity(
+                        'UPDATE',
+                        'ORDER',
+                        `Order ${route.order_id} status changed to ${newOrderStatus} after route status update`,
+                        req.user._id,
+                        {
+                            entityId: order._id,
+                            oldStatus: order.status,
+                            newStatus: newOrderStatus
+                        }
+                    );
+                }
+            }
+        }
+
         // Log activity
         await Activity.create({
             performedBy: req.user._id,
@@ -420,6 +514,28 @@ exports.assignRoute = async (req, res) => {
                 select: 'shop_name shop_id latitude longitude'
             }
         ]);
+
+        // Update order status to shipping if order exists
+        if (updatedRoute.order_id) {
+            const order = await Order.findOne({ order_id: updatedRoute.order_id });
+            if (order && order.status === 'processing') {
+                order.status = 'shipping';
+                await order.save();
+
+                // Log activity for order status change
+                await logActivity(
+                    'UPDATE',
+                    'ORDER',
+                    `Order ${updatedRoute.order_id} status changed to shipping after route assignment`,
+                    req.user._id,
+                    {
+                        entityId: order._id,
+                        oldStatus: 'processing',
+                        newStatus: 'shipping'
+                    }
+                );
+            }
+        }
 
         // Log activity
         await Activity.create({
