@@ -13,9 +13,8 @@ const routeSchema = new mongoose.Schema({
     },
     order_id: {
         type: String,
-        sparse: true // Cho phép null và tạo unique index
+        sparse: true
     },
-    // Fields cho ecommerce route
     source: {
         type: {
             type: String,
@@ -55,7 +54,6 @@ const routeSchema = new mongoose.Schema({
         latitude: Number,
         longitude: Number
     },
-    // Mảng shops cho route
     shops: [{
         shop_id: {
             type: String,
@@ -125,7 +123,7 @@ const routeSchema = new mongoose.Schema({
             default: 0
         },
         actual_duration: {
-            type: Number, // in minutes
+            type: Number,
             default: 0
         }
     },
@@ -135,7 +133,7 @@ const routeSchema = new mongoose.Schema({
             default: 1
         },
         max_delivery_time: {
-            type: Number, // in minutes
+            type: Number,
             default: 120
         }
     }
@@ -149,54 +147,5 @@ routeSchema.index({ status: 1 });
 routeSchema.index({ channel: 1 });
 routeSchema.index({ delivery_staff_id: 1 });
 routeSchema.index({ 'shops.shop_id': 1 });
-
-// Pre-save middleware để cập nhật metrics
-routeSchema.pre('save', async function (next) {
-    try {
-        // Cập nhật metrics
-        if (this.isModified('shops')) {
-            this.metrics.total_orders = this.shops.length;
-            this.metrics.completed_orders = this.shops.filter(s => s.status === 'completed').length;
-            this.metrics.failed_orders = this.shops.filter(s => s.status === 'skipped').length;
-        }
-
-        // Cập nhật thời gian hoàn thành
-        if (this.isModified('status') && this.status === 'delivered') {
-            this.completed_at = new Date();
-            if (this.started_at) {
-                this.metrics.actual_duration = Math.round((this.completed_at - this.started_at) / (1000 * 60));
-            }
-        }
-
-        // Cập nhật thời gian bắt đầu
-        if (this.isModified('status') && this.status === 'delivering' && !this.started_at) {
-            this.started_at = new Date();
-        }
-
-        next();
-    } catch (error) {
-        next(error);
-    }
-});
-
-// Method để cập nhật vị trí hiện tại
-routeSchema.methods.updateCurrentLocation = async function (latitude, longitude) {
-    this.current_location = {
-        latitude,
-        longitude,
-        last_updated: new Date()
-    };
-    return this.save();
-};
-
-// Method để đánh dấu đã đến shop
-routeSchema.methods.markShopArrival = async function (shopId) {
-    const shop = this.shops.find(s => s.shop_id === shopId);
-    if (shop) {
-        shop.status = 'arrived';
-        shop.actual_arrival = new Date();
-        await this.save();
-    }
-};
 
 module.exports = mongoose.model('Route', routeSchema);

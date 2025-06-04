@@ -3,6 +3,27 @@ const OrderItem = require('../models/order_item');
 const Shop = require('../models/Shop');
 const { logActivity } = require('./activityController');
 
+// Helper function to recalculate total price
+const recalculateTotalPrice = async (orderId) => {
+    const orderItems = await OrderItem.find({ order_id: orderId });
+    const totalPrice = orderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+    await Order.findOneAndUpdate({ order_id: orderId }, { total_price: totalPrice });
+    return totalPrice;
+};
+
+// Helper function to validate shop source
+const validateShopSource = (order) => {
+    if (order.source.type === 'shop' && order.source.location_id !== order.shop_id) {
+        throw new Error('source.location_id must match shop_id when source.type is shop');
+    }
+};
+
+// Helper function to delete order items
+const deleteOrderItems = async (orderId) => {
+    console.log(`Removing items for order: ${orderId}`);
+    await OrderItem.deleteMany({ order_id: orderId });
+};
+
 // @desc    Get all orders (with their items)
 exports.getAllOrders = async (req, res) => {
     try {
@@ -45,7 +66,7 @@ exports.getOrderById = async (req, res) => {
 
 // @desc    Create a new order (with items)
 exports.createOrder = async (req, res) => {
-    const { order_id, customer_id, shop_id, channel, status, items } = req.body; // items is an array
+    const { order_id, customer_id, shop_id, channel, status, items } = req.body;
 
     if (!order_id || !customer_id || !shop_id || !items || !Array.isArray(items) || items.length === 0) {
         return res.status(400).json({
@@ -80,19 +101,22 @@ exports.createOrder = async (req, res) => {
             status: status || 'pending',
             total_price: calculatedTotalPrice
         });
+
+        // Validate shop source before saving
+        validateShopSource(newOrder);
         await newOrder.save();
 
         // Create OrderItem documents
         const orderItemDocs = items.map(item => ({
             ...item,
-            order_id: newOrder.order_id // Link item to the order's custom ID
+            order_id: newOrder.order_id
         }));
         await OrderItem.insertMany(orderItemDocs);
 
         // Log activity
         await logActivity('CREATE', 'ORDER', `New order ${newOrder.order_id} created`, req.user._id, { entityId: newOrder._id });
 
-        const populatedOrder = await Order.findById(newOrder._id).populate('items'); // Fetch with items for response
+        const populatedOrder = await Order.findById(newOrder._id).populate('items');
         res.status(201).json({ success: true, data: populatedOrder });
 
     } catch (error) {
@@ -106,7 +130,7 @@ exports.createOrder = async (req, res) => {
 
 // @desc    Update an order (status, channel, or its items)
 exports.updateOrder = async (req, res) => {
-    const { channel, status, items } = req.body; // `items` is the new full list of items for the order
+    const { channel, status, items } = req.body;
 
     try {
         let order = await Order.findById(req.params.id);
@@ -123,9 +147,11 @@ exports.updateOrder = async (req, res) => {
             updated = true;
         }
 
+        // Validate shop source before updating
+        validateShopSource(order);
+
         if (items && Array.isArray(items)) {
-            // This approach replaces all existing items with the new set.
-            await OrderItem.deleteMany({ order_id: order.order_id });
+            await deleteOrderItems(order.order_id);
 
             if (items.length > 0) {
                 const orderItemDocs = items.map(item => {
@@ -139,21 +165,19 @@ exports.updateOrder = async (req, res) => {
                 });
                 await OrderItem.insertMany(orderItemDocs);
             }
-            await order.recalculateTotalPrice(); // Recalculate and save order with new total
+
+            // Recalculate total price
+            order.total_price = await recalculateTotalPrice(order.order_id);
             updated = true;
         } else if (items === null || (Array.isArray(items) && items.length === 0)) {
-            await OrderItem.deleteMany({ order_id: order.order_id });
-            await order.recalculateTotalPrice();
+            await deleteOrderItems(order.order_id);
+            order.total_price = 0;
             updated = true;
         }
 
-
         if (updated) {
-            await order.save(); // Save other order changes if any (status, channel)
-        } else if (!items) { // if items is undefined, only other fields were potentially updated
             await order.save();
         }
-
 
         // Log activity
         await logActivity('UPDATE', 'ORDER', `Order ${order.order_id} updated`, req.user._id, { entityId: order._id });
@@ -169,14 +193,19 @@ exports.updateOrder = async (req, res) => {
     }
 };
 
-// @desc    Delete an order (and its items via pre-remove hook)
+// @desc    Delete an order (and its items)
 exports.deleteOrder = async (req, res) => {
     try {
         const order = await Order.findById(req.params.id);
         if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
 
         const orderIdForLog = order.order_id;
-        await order.remove(); // This will trigger the pre-remove hook in Order.js to delete items
+
+        // Delete associated items first
+        await deleteOrderItems(order.order_id);
+
+        // Then delete the order
+        await order.remove();
 
         await logActivity('DELETE', 'ORDER', `Order ${orderIdForLog} was deleted`, req.user._id, { entityId: req.params.id });
         res.json({ success: true, message: 'Order and its items deleted successfully' });

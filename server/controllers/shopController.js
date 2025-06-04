@@ -1,24 +1,65 @@
 const Shop = require('../models/Shop');
+const Route = require('../models/Route');
 const { logActivity } = require('./activityController');
 
+// Helper Functions
+const formatShopId = async (ward_code) => {
+    try {
+        const lastShop = await Shop.findOne({
+            shop_id: new RegExp(`^${ward_code}`, 'i')
+        }).sort({ shop_id: -1 });
+
+        if (!lastShop) {
+            return `${ward_code}001`;
+        }
+
+        const lastNumber = parseInt(lastShop.shop_id.slice(-3));
+        const nextNumber = (lastNumber + 1).toString().padStart(3, '0');
+        return `${ward_code}${nextNumber}`;
+    } catch (error) {
+        throw new Error(`Error generating shop ID: ${error.message}`);
+    }
+};
+
+const validateShopId = async (shop_id, currentShopId = null) => {
+    const existingShop = await Shop.findOne({
+        shop_id: shop_id,
+        _id: { $ne: currentShopId }
+    });
+
+    if (existingShop) {
+        throw new Error('Shop ID must be unique');
+    }
+};
+
+const formatIds = (data) => {
+    if (data.province_id) {
+        data.province_id = data.province_id.toString().padStart(2, '0');
+    }
+    if (data.district_id) {
+        data.district_id = data.district_id.toString().padStart(3, '0');
+    }
+    return data;
+};
+
+const validateRequiredFields = (data) => {
+    const requiredFields = ['shop_name', 'province_id', 'district_id', 'ward_code', 'street', 'latitude', 'longitude'];
+    const missingFields = requiredFields.filter(field => !data[field]);
+
+    if (missingFields.length > 0) {
+        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+    }
+};
+
+// Controller Functions
 exports.getAllShops = async (req, res) => {
     try {
         const { ward_code, status, page = 1, limit = 10, search } = req.query;
 
-        // Xây dựng query
         let query = {};
+        if (ward_code) query.ward_code = ward_code;
+        if (status) query.status = status;
 
-        // Lọc theo ward_code nếu có
-        if (ward_code) {
-            query.ward_code = ward_code;
-        }
-
-        // Lọc theo status nếu có
-        if (status) {
-            query.status = status;
-        }
-
-        // Thêm điều kiện tìm kiếm
         if (search) {
             query.$or = [
                 { shop_name: { $regex: search, $options: 'i' } },
@@ -27,7 +68,6 @@ exports.getAllShops = async (req, res) => {
             ];
         }
 
-        // Nếu limit lớn hơn 100, chỉ trả về các trường cần thiết để tối ưu hiệu suất
         const projection = parseInt(limit) > 100 ? {
             shop_id: 1,
             shop_name: 1,
@@ -37,19 +77,14 @@ exports.getAllShops = async (req, res) => {
             status: 1
         } : null;
 
-        // Tính toán skip cho pagination
         const skip = (parseInt(page) - 1) * parseInt(limit);
-
-        // Đếm tổng số documents thỏa mãn query
         const total = await Shop.countDocuments(query);
 
-        // Lấy data với pagination và projection tối ưu
         const shops = await Shop.find(query, projection)
             .sort({ shop_id: 1 })
             .skip(skip)
             .limit(parseInt(limit));
 
-        // Tính tổng số trang
         const totalPages = Math.ceil(total / parseInt(limit));
 
         res.json({
@@ -72,44 +107,11 @@ exports.getAllShops = async (req, res) => {
     }
 };
 
-const getNextShopId = async (ward_code) => {
-    try {
-        // Tìm shop cuối cùng có ward_code tương ứng
-        const lastShop = await Shop.findOne({
-            shop_id: new RegExp(`^${ward_code}`, 'i')
-        }).sort({ shop_id: -1 });
-
-        if (!lastShop) {
-            // Nếu chưa có shop nào với ward_code này
-            return `${ward_code}001`;
-        }
-
-        // Lấy 3 số cuối của shop_id cuối cùng
-        const lastNumber = parseInt(lastShop.shop_id.slice(-3));
-
-        // Kiểm tra xem có shop nào với ID mới không
-        let nextNumber = lastNumber + 1;
-        let newShopId;
-        let existingShop;
-
-        do {
-            newShopId = `${ward_code}${nextNumber.toString().padStart(3, '0')}`;
-            existingShop = await Shop.findOne({ shop_id: newShopId });
-            nextNumber++;
-        } while (existingShop);
-
-        return newShopId;
-    } catch (error) {
-        console.error('Error generating next shop ID:', error);
-        throw error;
-    }
-};
-
 exports.createShop = async (req, res) => {
     try {
         const shopData = req.body;
 
-        // Kiểm tra ward_code
+        // Validate ward_code
         if (!shopData.ward_code || shopData.ward_code.length !== 5) {
             return res.status(400).json({
                 success: false,
@@ -117,8 +119,22 @@ exports.createShop = async (req, res) => {
             });
         }
 
-        // Tạo shop mới (shop_id sẽ được tạo tự động trong pre-save middleware)
-        const newShop = new Shop(shopData);
+        // Validate required fields
+        validateRequiredFields(shopData);
+
+        // Format IDs
+        const formattedData = formatIds(shopData);
+
+        // Generate shop_id if not provided
+        if (!formattedData.shop_id) {
+            formattedData.shop_id = await formatShopId(formattedData.ward_code);
+        }
+
+        // Validate shop_id uniqueness
+        await validateShopId(formattedData.shop_id);
+
+        // Create new shop
+        const newShop = new Shop(formattedData);
         await newShop.save();
 
         // Log activity
@@ -154,28 +170,18 @@ exports.createShop = async (req, res) => {
 
 exports.updateShop = async (req, res) => {
     try {
-
         const shopData = req.body;
 
         // Validate required fields
-        const requiredFields = ['shop_name', 'province_id', 'district_id', 'ward_code', 'street', 'latitude', 'longitude'];
-        for (const field of requiredFields) {
-            if (!shopData[field]) {
-                return res.status(400).json({
-                    success: false,
-                    message: `${field} is required`
-                });
-            }
-        }
+        validateRequiredFields(shopData);
 
-        // Format data
-        const formattedData = {
-            ...shopData,
-            province_id: shopData.province_id.toString().padStart(2, '0'),
-            district_id: shopData.district_id.toString().padStart(3, '0'),
-            latitude: parseFloat(shopData.latitude),
-            longitude: parseFloat(shopData.longitude)
-        };
+        // Format IDs
+        const formattedData = formatIds(shopData);
+
+        // If shop_id is being modified, validate its uniqueness
+        if (shopData.shop_id) {
+            await validateShopId(shopData.shop_id, req.params.id);
+        }
 
         // Find and update shop
         const updatedShop = await Shop.findByIdAndUpdate(
@@ -194,15 +200,21 @@ exports.updateShop = async (req, res) => {
             });
         }
 
-
         // Log activity
-        await logActivity({
-            user_id: req.user._id,
-            action: 'update',
-            target_type: 'shop',
-            target_id: updatedShop._id,
-            details: `Updated shop ${updatedShop.shop_name}`
-        });
+        await logActivity(
+            'UPDATE',
+            'SHOP',
+            `Shop ${updatedShop.shop_name} was updated`,
+            req.user._id,
+            {
+                entityId: updatedShop._id,
+                entityName: updatedShop.shop_name,
+                details: {
+                    shop_id: updatedShop.shop_id,
+                    location: `${updatedShop.street}, ${updatedShop.ward_code}`
+                }
+            }
+        );
 
         res.json({
             success: true,
@@ -224,7 +236,6 @@ exports.deleteShop = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Kiểm tra shop có tồn tại không
         const shop = await Shop.findById(id);
         if (!shop) {
             return res.status(404).json({
@@ -233,8 +244,7 @@ exports.deleteShop = async (req, res) => {
             });
         }
 
-        // Kiểm tra shop có đang được sử dụng trong route nào không
-        const Route = require('../models/Route');
+        // Check if shop is used in any route
         const routeWithShop = await Route.findOne({
             'shops.shop_id': shop.shop_id
         });
@@ -246,7 +256,6 @@ exports.deleteShop = async (req, res) => {
             });
         }
 
-        // Xóa shop
         await Shop.findByIdAndDelete(id);
 
         // Log activity
@@ -277,4 +286,12 @@ exports.deleteShop = async (req, res) => {
             error: error.message
         });
     }
+};
+
+// Export helper functions for testing
+exports.helpers = {
+    formatShopId,
+    validateShopId,
+    formatIds,
+    validateRequiredFields
 };

@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const OrderItem = require('./order_item');
 
 const orderSchema = new mongoose.Schema({
     order_id: {
@@ -97,40 +96,9 @@ const orderSchema = new mongoose.Schema({
 
 // Virtual populate for items
 orderSchema.virtual('items', {
-    ref: 'OrderItem',        // The model to use
-    localField: 'order_id',  // Find OrderItems where OrderItem.order_id
-    foreignField: 'order_id' // matches this Order.order_id (your custom string ID)
-});
-
-// Method to recalculate total price based on its items
-orderSchema.methods.recalculateTotalPrice = async function () {
-    const orderItems = await OrderItem.find({ order_id: this.order_id });
-    this.total_price = orderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-    return this.save();
-};
-
-// Middleware to remove associated order items when an order is removed
-orderSchema.pre('remove', async function (next) {
-    try {
-        console.log(`Removing items for order: ${this.order_id}`);
-        await OrderItem.deleteMany({ order_id: this.order_id });
-        next();
-    } catch (error) {
-        next(error);
-    }
-});
-
-// Thêm validation trước khi lưu
-orderSchema.pre('save', async function (next) {
-    try {
-        // Validate source.location_id phải khớp với shop_id khi source.type là 'shop'
-        if (this.source.type === 'shop' && this.source.location_id !== this.shop_id) {
-            throw new Error('source.location_id must match shop_id when source.type is shop');
-        }
-        next();
-    } catch (error) {
-        next(error);
-    }
+    ref: 'OrderItem',
+    localField: 'order_id',
+    foreignField: 'order_id'
 });
 
 module.exports = mongoose.model('Order', orderSchema);
