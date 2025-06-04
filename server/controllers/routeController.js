@@ -46,6 +46,56 @@ const deg2rad = (deg) => {
     return deg * (Math.PI / 180);
 };
 
+// Helper function to update metrics
+const updateRouteMetrics = async (route) => {
+    if (route.shops) {
+        route.metrics.total_orders = route.shops.length;
+        route.metrics.completed_orders = route.shops.filter(s => s.status === 'completed').length;
+        route.metrics.failed_orders = route.shops.filter(s => s.status === 'skipped').length;
+    }
+
+    if (route.status === 'delivered' && !route.completed_at) {
+        route.completed_at = new Date();
+        if (route.started_at) {
+            route.metrics.actual_duration = Math.round((route.completed_at - route.started_at) / (1000 * 60));
+        }
+    }
+
+    if (route.status === 'delivering' && !route.started_at) {
+        route.started_at = new Date();
+    }
+
+    await route.save();
+};
+
+// Helper function to update current location
+const updateCurrentLocation = async (route, latitude, longitude) => {
+    route.current_location = {
+        latitude,
+        longitude,
+        last_updated: new Date()
+    };
+    return route.save();
+};
+
+// Helper function to mark shop arrival
+const markShopArrival = async (route, shopId) => {
+    const shop = route.shops.find(s => s.shop_id === shopId);
+    if (shop) {
+        shop.status = 'arrived';
+        shop.actual_arrival = new Date();
+        await route.save();
+    }
+};
+
+// Helper function to validate status transition
+const validateStatusTransition = (currentStatus, newStatus) => {
+    const allowedStatuses = ALLOWED_STATUS_TRANSITIONS[currentStatus];
+    if (!allowedStatuses.includes(newStatus)) {
+        throw new Error(`Cannot change status from ${currentStatus} to ${newStatus}. Allowed statuses are: ${allowedStatuses.join(', ')}`);
+    }
+};
+
 exports.createRoute = async (req, res) => {
     try {
         console.log('Creating route with data:', req.body);
@@ -817,4 +867,14 @@ exports.getRouteByCode = async (req, res) => {
             error: error.message
         });
     }
+};
+
+// Export helper functions for testing
+exports.helpers = {
+    calculateDistance,
+    deg2rad,
+    updateRouteMetrics,
+    updateCurrentLocation,
+    markShopArrival,
+    validateStatusTransition
 };
