@@ -1,4 +1,4 @@
-const Warehouse = require('../models/Warehouse');
+const Warehouse = require('../models/warehouse');
 const Province = require('../models/Province');
 const District = require('../models/District');
 const { logActivity } = require('./activityController');
