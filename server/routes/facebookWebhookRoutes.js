@@ -11,6 +11,7 @@ router.get("/", (req, res) => {
     const challenge = req.query["hub.challenge"];
 
     if (mode && token === VERIFY_TOKEN) {
+        console.log("🔑 PAGE_ACCESS_TOKEN = ", PAGE_ACCESS_TOKEN?.slice(0, 10), "(length:", PAGE_ACCESS_TOKEN?.length, ")");
         console.log("✅ Webhook verified!");
         return res.status(200).send(challenge);
     } else {
@@ -32,6 +33,7 @@ router.post("/", async (req, res) => {
                 console.log("📨 User said:", userMsg);
 
                 // Phản hồi cố định
+                console.log("🔑 PAGE_ACCESS_TOKEN = ", PAGE_ACCESS_TOKEN?.slice(0, 10), "(length:", PAGE_ACCESS_TOKEN?.length, ")");
                 sendMessage(senderId, `Chào em, tôi là bot của công ty, tôi có thể giúp gì cho em?`);
             }
         });
@@ -45,13 +47,17 @@ router.post("/", async (req, res) => {
 async function sendMessage(recipientId, messageText) {
     try {
         const url = `https://graph.facebook.com/v17.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`;
-        await axios.post(url, {
+
+        console.log(`📤 Gửi tin nhắn đến ID: ${recipientId} - Nội dung: "${messageText}"`);
+
+        const response = await axios.post(url, {
             recipient: { id: recipientId },
-            message: { text: messageText },
+            message: { text: messageText }
         });
-        console.log("✅ Sent reply to user");
+
+        console.log("✅ Gửi thành công:", response.data);
     } catch (err) {
-        console.error("❌ Failed to send message:", err.response?.data || err.message);
+        console.error("❌ Gửi thất bại:", err.response?.data || err.message);
     }
 }
 
