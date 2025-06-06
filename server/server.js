@@ -22,15 +22,28 @@ const orderItemRoutes = require('./routes/orderItemRoutes');
 const warehouseRoutes = require('./routes/warehouseRoutes');
 const externalOrderRoutes = require('./routes/api/orders');
 const customerAddressRoutes = require('./routes/customerAddressRoutes');
+const facebookWebhookRoutes = require('./routes/facebookWebhookRoutes');
 
 
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS
+    ? process.env.CORS_ALLOWED_ORIGINS.split(",")
+    : [];
+
 // Middleware
 app.use(cors({
-    origin: ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174'], // URLs của frontend
+    origin: function (origin, callback) {
+        // Trong development, origin có thể là undefined (ex: Postman)
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            console.error("❌ Blocked by CORS:", origin);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
@@ -60,6 +73,7 @@ app.use('/api/orders/:orderMongoId/items', orderItemRoutes);
 app.use('/api/warehouses', warehouseRoutes);
 app.use('/api/external/orders', externalOrderRoutes);
 app.use('/api/customer-addresses', customerAddressRoutes);
+app.use("/webhook", facebookWebhookRoutes);
 
 // Test route
 app.get('/', (req, res) => {
@@ -95,7 +109,7 @@ const startServer = async () => {
         console.log('WARDS routes: /api/wards');
         console.log('ROUTES routes: /api/routes');
         console.log('CUSTOMER routes: /api/customer');
-
+        console.log('FACEBOOK WEBHOOK routes: /webhook');
 
         // Start server
         app.listen(PORT, () => {
