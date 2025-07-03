@@ -10,7 +10,8 @@ const {
     assignRoute,
     claimRoute,
     getRouteById,
-    getRouteByCode
+    getRouteByCode,
+    autoAssignRoutes
 } = require('../controllers/routeController');
 
 // Protect all routes
@@ -30,5 +31,6 @@ router.post('/', authorize('Admin'), createRoute);
 router.delete('/:id', authorize('Admin'), deleteRoute);
 router.put('/:id', authorize('Admin'), updateRoute);
 router.post('/assign', authorize('Admin'), assignRoute);
+router.post('/auto-assign', authorize('Admin'), autoAssignRoutes);
 
 module.exports = router;

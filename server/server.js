@@ -24,30 +24,21 @@ const externalOrderRoutes = require('./routes/api/orders');
 const customerAddressRoutes = require('./routes/customerAddressRoutes');
 const facebookWebhookRoutes = require('./routes/facebookWebhookRoutes');
 
-
-
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-const allowedOrigins = process.env.CORS_ALLOWED_ORIGINS
-    ? process.env.CORS_ALLOWED_ORIGINS.split(",")
-    : [];
-
-// Middleware
-app.use(cors({
-    origin: function (origin, callback) {
-        // Trong development, origin có thể là undefined (ex: Postman)
-        if (!origin || allowedOrigins.includes(origin)) {
-            callback(null, true);
-        } else {
-            console.error("❌ Blocked by CORS:", origin);
-            callback(new Error('Not allowed by CORS'));
-        }
-    },
+// CORS configuration
+const corsOptions = {
+    origin: process.env.NODE_ENV === 'development'
+        ? ['http://localhost:3000', 'http://localhost:5173', 'http://localhost:5174']
+        : process.env.CORS_ALLOWED_ORIGINS?.split(',').map(origin => origin.trim()),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
-}));
+};
+
+// Middleware
+app.use(cors(corsOptions));
 app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 

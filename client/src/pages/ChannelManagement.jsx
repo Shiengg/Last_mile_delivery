@@ -117,7 +117,7 @@ const ChannelManagement = () => {
     const [channels, setChannels] = useState([
         { id: 'ecommerce', name: 'E-commerce', status: 'active', orders: 0 },
         { id: 'warehouse', name: 'Warehouse', status: 'active', orders: 0 },
-        { id: 'shop_direct', name: 'Shop Direct', status: 'active', orders: 0 }
+        { id: 'social_media', name: 'Social Media', status: 'active', orders: 0, platform: 'messenger' }
     ]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -567,16 +567,26 @@ const ChannelManagement = () => {
                                 <div className="flex items-center">
                                     <div className={`w-12 h-12 rounded-lg flex items-center justify-center 
                                         ${channel.id === 'ecommerce' ? 'bg-purple-100' :
-                                            channel.id === 'warehouse' ? 'bg-blue-100' : 'bg-green-100'}`}
+                                            channel.id === 'warehouse' ? 'bg-blue-100' : 'bg-pink-100'}`}
                                     >
-                                        <FiShoppingBag className={`w-6 h-6 
-                                            ${channel.id === 'ecommerce' ? 'text-purple-600' :
-                                                channel.id === 'warehouse' ? 'text-blue-600' : 'text-green-600'}`}
-                                        />
+                                        {channel.id === 'social_media' ? (
+                                            <img
+                                                src="/messenger-icon.png"
+                                                alt="Messenger"
+                                                className="w-6 h-6"
+                                            />
+                                        ) : (
+                                            <FiShoppingBag className={`w-6 h-6 
+                                                ${channel.id === 'ecommerce' ? 'text-purple-600' :
+                                                    channel.id === 'warehouse' ? 'text-blue-600' : 'text-pink-600'}`}
+                                            />
+                                        )}
                                     </div>
                                     <div className="ml-4">
                                         <h3 className="text-lg font-semibold text-gray-900">{channel.name}</h3>
-                                        <p className="text-sm text-gray-500">Channel ID: {channel.id}</p>
+                                        <p className="text-sm text-gray-500">
+                                            {channel.id === 'social_media' ? 'Platform: Messenger' : `Channel ID: ${channel.id}`}
+                                        </p>
                                     </div>
                                 </div>
                                 <Chip
@@ -601,7 +611,7 @@ const ChannelManagement = () => {
                                 <div className="h-2 bg-gray-200 rounded-full">
                                     <div
                                         className={`h-2 rounded-full ${channel.id === 'ecommerce' ? 'bg-purple-500' :
-                                            channel.id === 'warehouse' ? 'bg-blue-500' : 'bg-green-500'
+                                            channel.id === 'warehouse' ? 'bg-blue-500' : 'bg-pink-500'
                                             }`}
                                         style={{
                                             width: `${(channel.orders / Math.max(...channels.map(c => c.orders))) * 100}%`

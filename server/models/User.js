@@ -36,6 +36,14 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: 'https://ui-avatars.com/api/?name=User&background=0D8ABC&color=fff'
     },
+    delivery_zones: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'DeliveryZone'
+    }],
+    max_concurrent_routes: {
+        type: Number,
+        default: 5
+    },
     createdAt: {
         type: Date,
         default: Date.now

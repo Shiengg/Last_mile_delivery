@@ -101,7 +101,7 @@ async function createOrder(userId, pendingOrder) {
             order_id,
             customer_id: userId,
             shop_id: '12345678', // ID mặc định của shop
-            channel: 'social-media',
+            channel: 'social_media',
             source: {
                 type: 'shop',
                 location_id: '12345678',
