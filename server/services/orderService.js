@@ -124,7 +124,7 @@ async function createOrder(userId, pendingOrder) {
                     house_number: addressCodes.house_number
                 }
             },
-            status: 'processing',
+            status: 'pending',
             notes: `Sản phẩm: ${pendingOrder.products}${pendingOrder.extra ? `\nGhi chú: ${pendingOrder.extra}` : ''}`,
             estimated_delivery_time: new Date(Date.now() + 24 * 60 * 60 * 1000) // 24h từ thời điểm đặt
         });
