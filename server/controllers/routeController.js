@@ -872,7 +872,21 @@ exports.getRouteByCode = async (req, res) => {
 
 exports.autoAssignRoutes = async (req, res) => {
     try {
-        const pendingRoutes = await Route.find({ status: 'pending' });
+        const pendingRoutes = await Route.find({ status: 'pending' })
+            .populate({
+                path: 'shops.shop_id',
+                select: 'shop_name address'
+            });
+
+        if (!pendingRoutes || pendingRoutes.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No pending routes found'
+            });
+        }
+
+        console.log(`Found ${pendingRoutes.length} pending routes`);
+
         const results = {
             success: [],
             failed: []
@@ -880,22 +894,31 @@ exports.autoAssignRoutes = async (req, res) => {
 
         for (const route of pendingRoutes) {
             try {
+                console.log(`Processing route ${route.route_code}`);
                 const updatedRoute = await autoAssignRoute(route._id);
                 results.success.push({
-                    route_code: updatedRoute.route_code,
+                    route_id: route._id,
+                    route_code: route.route_code,
                     delivery_staff: updatedRoute.delivery_staff_id
                 });
             } catch (error) {
+                console.error(`Failed to assign route ${route.route_code}:`, error);
                 results.failed.push({
+                    route_id: route._id,
                     route_code: route.route_code,
                     error: error.message
                 });
             }
         }
 
+        // Chỉ trả về success true nếu tất cả các route đều được assign thành công
+        const allSuccess = results.failed.length === 0;
+
         res.json({
-            success: true,
-            message: 'Auto assignment completed',
+            success: allSuccess,
+            message: allSuccess
+                ? 'All routes assigned successfully'
+                : `${results.success.length} routes assigned, ${results.failed.length} failed`,
             data: results
         });
     } catch (error) {
@@ -903,6 +926,53 @@ exports.autoAssignRoutes = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error in auto assigning routes',
+            error: error.message
+        });
+    }
+};
+
+exports.getPendingRoutes = async (req, res) => {
+    try {
+        // Đầu tiên lấy tất cả các route pending
+        const routes = await Route.find({ status: 'pending' })
+            .populate('delivery_staff_id', 'username fullName')
+            .lean();
+
+        // Sau đó lấy thông tin shop cho từng route
+        const transformedRoutes = await Promise.all(routes.map(async route => {
+            // Lấy danh sách shop_id từ route
+            const shopIds = route.shops.map(shop => shop.shop_id);
+
+            // Tìm tất cả các shop có shop_id trong danh sách
+            const shops = await Shop.find({ shop_id: { $in: shopIds } }).lean();
+
+            // Tạo map để dễ dàng tìm shop theo shop_id
+            const shopMap = shops.reduce((acc, shop) => {
+                acc[shop.shop_id] = shop;
+                return acc;
+            }, {});
+
+            // Transform route data
+            return {
+                ...route,
+                shops: route.shops
+                    .sort((a, b) => a.order - b.order)
+                    .map(shop => ({
+                        ...shop,
+                        shop_details: shopMap[shop.shop_id] || null
+                    }))
+            };
+        }));
+
+        res.status(200).json({
+            success: true,
+            data: transformedRoutes
+        });
+    } catch (error) {
+        console.error('Error getting pending routes:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error getting pending routes',
             error: error.message
         });
     }

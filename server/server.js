@@ -23,6 +23,7 @@ const warehouseRoutes = require('./routes/warehouseRoutes');
 const externalOrderRoutes = require('./routes/api/orders');
 const customerAddressRoutes = require('./routes/customerAddressRoutes');
 const facebookWebhookRoutes = require('./routes/facebookWebhookRoutes');
+const deliveryZoneRoutes = require('./routes/deliveryZoneRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -65,6 +66,7 @@ app.use('/api/warehouses', warehouseRoutes);
 app.use('/api/external/orders', externalOrderRoutes);
 app.use('/api/customer-addresses', customerAddressRoutes);
 app.use("/webhook", facebookWebhookRoutes);
+app.use('/api/delivery-zones', deliveryZoneRoutes);
 
 // Test route
 app.get('/', (req, res) => {
@@ -101,6 +103,7 @@ const startServer = async () => {
         console.log('ROUTES routes: /api/routes');
         console.log('CUSTOMER routes: /api/customer');
         console.log('FACEBOOK WEBHOOK routes: /webhook');
+        console.log('DELIVERY ZONES routes: /api/delivery-zones');
 
         // Start server
         app.listen(PORT, () => {

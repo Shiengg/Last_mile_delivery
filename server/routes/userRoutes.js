@@ -6,6 +6,9 @@ const { getProfile, updateProfile, getDeliveryStaff } = require('../controllers/
 // Protected routes
 router.use(protect);
 
+// Get current user info
+router.get('/me', getProfile);
+
 // Get user profile
 router.get('/profile', getProfile);
 

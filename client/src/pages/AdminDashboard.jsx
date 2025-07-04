@@ -375,6 +375,22 @@ const AdminDashboard = () => {
               </button>
 
               <button
+                onClick={() => navigate('/admin-dashboard/auto-assign')}
+                className={`px-3 py-4 text-sm font-medium whitespace-nowrap transition-all ${isActivePath('/admin-dashboard/auto-assign')
+                  ? 'text-blue-600 border-b-2 border-blue-600'
+                  : 'text-gray-700 hover:text-blue-600 hover:border-b-2 hover:border-blue-600'
+                  }`}
+              >
+                <div className="flex items-center space-x-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                      d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  <span>Auto Assign</span>
+                </div>
+              </button>
+
+              <button
                 onClick={() => navigate('/admin-dashboard/vehicle-types')}
                 className={`px-3 py-4 text-sm font-medium whitespace-nowrap transition-all ${isActivePath('/admin-dashboard/vehicle-types')
                   ? 'text-blue-600 border-b-2 border-blue-600'
@@ -390,7 +406,6 @@ const AdminDashboard = () => {
                 </div>
               </button>
 
-              {/* New Channel Management Button */}
               <button
                 onClick={() => navigate('/admin-dashboard/channels')}
                 className={`px-3 py-4 text-sm font-medium whitespace-nowrap transition-all ${isActivePath('/admin-dashboard/channels')
@@ -480,8 +495,31 @@ const AdminDashboard = () => {
                     <table className="min-w-full divide-y divide-gray-200">
                       <thead className="bg-gray-50">
                         <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/2">Staff Information</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">Staff Information</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Contact</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                            <div className="flex items-center space-x-1">
+                              <span>Performance Score</span>
+                              <div className="group relative">
+                                <svg className="w-4 h-4 text-gray-400 cursor-help" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <div className="hidden group-hover:block absolute z-50 w-72 p-4 bg-white rounded-lg shadow-lg border border-gray-200 text-sm text-gray-600 -left-20 -top-2">
+                                  <h4 className="font-semibold mb-2">Score Calculation:</h4>
+                                  <ul className="list-disc pl-4 space-y-1">
+                                    <li>Base Score: 100 points</li>
+                                    <li>Rating: Up to +25 points (5 per star)</li>
+                                    <li>Success Rate: +10 points (≥90%), +5 points (≥80%)</li>
+                                    <li>Area Familiarity: Up to +10 points</li>
+                                    <li>Recent Activity: +5 points (active in last 7 days)</li>
+                                    <li>Preferred Hours: +8 points</li>
+                                    <li>Active Routes: -15 points per route</li>
+                                  </ul>
+                                </div>
+                              </div>
+                            </div>
+                          </th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
@@ -531,6 +569,53 @@ const AdminDashboard = () => {
                                       d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                                   </svg>
                                   {staff.phone}
+                                </div>
+                              </div>
+                            </td>
+
+                            {/* Performance Score Column */}
+                            <td className="px-6 py-4">
+                              <div className="flex items-center space-x-4">
+                                <div className="flex-1">
+                                  <div className="flex items-center mb-1">
+                                    <div className="text-sm font-medium text-gray-900">
+                                      Rating: {staff.delivery_metrics?.rating?.toFixed(1) || 'N/A'}
+                                    </div>
+                                    {staff.delivery_metrics?.rating > 0 && (
+                                      <div className="flex items-center ml-2">
+                                        {[...Array(5)].map((_, index) => (
+                                          <svg
+                                            key={index}
+                                            className={`w-4 h-4 ${index < staff.delivery_metrics.rating
+                                                ? 'text-yellow-400'
+                                                : 'text-gray-300'
+                                              }`}
+                                            fill="currentColor"
+                                            viewBox="0 0 20 20"
+                                          >
+                                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                          </svg>
+                                        ))}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="text-sm text-gray-600">
+                                    Success Rate: {
+                                      staff.delivery_metrics?.total_deliveries
+                                        ? `${((staff.delivery_metrics.successful_deliveries / staff.delivery_metrics.total_deliveries) * 100).toFixed(1)}%`
+                                        : 'N/A'
+                                    }
+                                  </div>
+                                  <div className="text-sm text-gray-600">
+                                    Total Deliveries: {staff.delivery_metrics?.total_deliveries || 0}
+                                  </div>
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    {staff.preferred_working_hours && (
+                                      <span>
+                                        Working Hours: {staff.preferred_working_hours.start}:00 - {staff.preferred_working_hours.end}:00
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </td>
