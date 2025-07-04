@@ -7,6 +7,7 @@ const { generateRouteId } = require('../utils/idGenerator');
 const User = require('../models/User');
 const { logActivity } = require('../controllers/activityController');
 const Activity = require('../models/Activity');
+const { autoAssignRoute } = require('../services/routeAssignmentService');
 
 // Định nghĩa các trạng thái và luồng chuyển đổi ở đầu file
 const ROUTE_STATUS = {
@@ -864,6 +865,44 @@ exports.getRouteByCode = async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Error getting route',
+            error: error.message
+        });
+    }
+};
+
+exports.autoAssignRoutes = async (req, res) => {
+    try {
+        const pendingRoutes = await Route.find({ status: 'pending' });
+        const results = {
+            success: [],
+            failed: []
+        };
+
+        for (const route of pendingRoutes) {
+            try {
+                const updatedRoute = await autoAssignRoute(route._id);
+                results.success.push({
+                    route_code: updatedRoute.route_code,
+                    delivery_staff: updatedRoute.delivery_staff_id
+                });
+            } catch (error) {
+                results.failed.push({
+                    route_code: route.route_code,
+                    error: error.message
+                });
+            }
+        }
+
+        res.json({
+            success: true,
+            message: 'Auto assignment completed',
+            data: results
+        });
+    } catch (error) {
+        console.error('Error in auto assigning routes:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error in auto assigning routes',
             error: error.message
         });
     }

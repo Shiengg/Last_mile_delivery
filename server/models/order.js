@@ -19,7 +19,7 @@ const orderSchema = new mongoose.Schema({
     },
     channel: {
         type: String,
-        enum: ['ecommerce', 'warehouse', 'shop_direct', 'social-media'],
+        enum: ['ecommerce', 'warehouse', 'social_media'],
         required: true
     },
     source: {

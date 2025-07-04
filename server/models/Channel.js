@@ -5,7 +5,7 @@ const channelSchema = new mongoose.Schema({
         type: String,
         required: true,
         unique: true,
-        enum: ['ecommerce', 'warehouse', 'shop_direct'],
+        enum: ['ecommerce', 'warehouse', 'social_media'],
         trim: true
     },
     name: {
@@ -53,7 +53,12 @@ const channelSchema = new mongoose.Schema({
     integration: {
         api_key: String,
         webhook_url: String,
-        callback_url: String
+        callback_url: String,
+        platform: {
+            type: String,
+            enum: ['messenger', 'zalo', 'other'],
+            default: 'messenger'
+        }
     },
     status: {
         type: String,
