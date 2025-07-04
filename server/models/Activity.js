@@ -14,7 +14,7 @@ const activitySchema = new mongoose.Schema({
   target_type: {
     type: String,
     required: true,
-    enum: ['ROUTE', 'SHOP', 'USER', 'VEHICLE']
+    enum: ['ROUTE', 'SHOP', 'USER', 'VEHICLE', 'ORDER']
   },
   description: {
     type: String,
