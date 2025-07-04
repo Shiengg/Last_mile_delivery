@@ -4,8 +4,9 @@ const cloudinary = require('../config/cloudinary');
 // Get user profile
 exports.getProfile = async (req, res) => {
   try {
-
-    const user = await User.findById(req.user._id).select('-password');
+    const user = await User.findById(req.user._id)
+      .select('-password')
+      .lean();
 
     if (!user) {
       return res.status(404).json({

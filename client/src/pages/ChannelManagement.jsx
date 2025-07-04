@@ -24,7 +24,7 @@ import {
     CircularProgress,
     Divider
 } from '@mui/material';
-import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiX, FiCheck, FiHash, FiShoppingBag, FiPackage, FiMapPin, FiPhone, FiCalendar, FiClock, FiDollarSign, FiTruck } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiX, FiCheck, FiHash, FiShoppingBag, FiPackage, FiMapPin, FiPhone, FiCalendar, FiClock, FiDollarSign, FiTruck, FiMessageSquare } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 import axios from 'axios';
 import { getProvincesWithDetail } from 'vietnam-provinces';
@@ -117,7 +117,7 @@ const ChannelManagement = () => {
     const [channels, setChannels] = useState([
         { id: 'ecommerce', name: 'E-commerce', status: 'active', orders: 0 },
         { id: 'warehouse', name: 'Warehouse', status: 'active', orders: 0 },
-        { id: 'social_media', name: 'Social Media', status: 'active', orders: 0, platform: 'messenger' }
+        { id: 'social-media', name: 'Social Media', status: 'active', orders: 0, platform: 'messenger' }
     ]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -569,12 +569,8 @@ const ChannelManagement = () => {
                                         ${channel.id === 'ecommerce' ? 'bg-purple-100' :
                                             channel.id === 'warehouse' ? 'bg-blue-100' : 'bg-pink-100'}`}
                                     >
-                                        {channel.id === 'social_media' ? (
-                                            <img
-                                                src="/messenger-icon.png"
-                                                alt="Messenger"
-                                                className="w-6 h-6"
-                                            />
+                                        {channel.id === 'social-media' ? (
+                                            <FiMessageSquare className="w-6 h-6 text-pink-600" />
                                         ) : (
                                             <FiShoppingBag className={`w-6 h-6 
                                                 ${channel.id === 'ecommerce' ? 'text-purple-600' :
@@ -585,7 +581,7 @@ const ChannelManagement = () => {
                                     <div className="ml-4">
                                         <h3 className="text-lg font-semibold text-gray-900">{channel.name}</h3>
                                         <p className="text-sm text-gray-500">
-                                            {channel.id === 'social_media' ? 'Platform: Messenger' : `Channel ID: ${channel.id}`}
+                                            {channel.id === 'social-media' ? 'Platform: Messenger' : `Channel ID: ${channel.id}`}
                                         </p>
                                     </div>
                                 </div>

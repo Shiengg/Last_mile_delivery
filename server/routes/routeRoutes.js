@@ -11,7 +11,8 @@ const {
     claimRoute,
     getRouteById,
     getRouteByCode,
-    autoAssignRoutes
+    autoAssignRoutes,
+    getPendingRoutes
 } = require('../controllers/routeController');
 
 // Protect all routes
@@ -19,8 +20,9 @@ router.use(protect);
 
 // Public routes (accessible by both Admin and DeliveryStaff)
 router.get('/', getAllRoutes);
-router.get('/:id', getRouteById);
+router.get('/pending', getPendingRoutes);
 router.get('/code/:code', getRouteByCode);
+router.get('/:id', getRouteById);
 
 // DeliveryStaff routes
 router.put('/:id/status', authorize(['DeliveryStaff', 'Admin']), updateRouteStatus);

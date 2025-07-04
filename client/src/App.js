@@ -1,3 +1,4 @@
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Login from './pages/Login';
 import AdminDashboard from './pages/AdminDashboard';
@@ -20,6 +21,8 @@ import { Toaster } from 'react-hot-toast';
 import { NotificationProvider } from './contexts/NotificationContext';
 import ChannelManagement from './pages/ChannelManagement';
 import ServicePage from './pages/ServicePage';
+import AutoRouteAssignment from './components/Admin/AutoRouteAssignment';
+
 function App() {
   return (
     <NotificationProvider>
@@ -60,6 +63,7 @@ function App() {
             <Route path="routes" element={<RouteManagement />} />
             <Route path="vehicle-types" element={<VehicleManagement />} />
             <Route path="channels" element={<ChannelManagement />} />
+            <Route path="auto-assign" element={<AutoRouteAssignment />} />
           </Route>
 
           <Route
