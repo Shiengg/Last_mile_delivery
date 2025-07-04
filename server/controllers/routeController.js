@@ -110,10 +110,10 @@ exports.createRoute = async (req, res) => {
         }
 
         // Validate channel
-        if (!channel || !['ecommerce', 'warehouse', 'shop_direct'].includes(channel)) {
+        if (!channel || !['ecommerce', 'warehouse', 'shop_direct', 'social-media'].includes(channel)) {
             return res.status(400).json({
                 success: false,
-                message: 'Invalid channel. Must be one of: ecommerce, warehouse, shop_direct'
+                message: 'Invalid channel. Must be one of: ecommerce, warehouse, shop_direct, social-media'
             });
         }
 

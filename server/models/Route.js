@@ -8,7 +8,7 @@ const routeSchema = new mongoose.Schema({
     },
     channel: {
         type: String,
-        enum: ['ecommerce', 'warehouse', 'shop_direct'],
+        enum: ['ecommerce', 'warehouse', 'shop_direct', 'social-media'],
         required: true
     },
     order_id: {

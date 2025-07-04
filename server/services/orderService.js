@@ -100,15 +100,15 @@ async function createOrder(userId, pendingOrder) {
         const order = new Order({
             order_id,
             customer_id: userId,
-            shop_id: '12345678', // ID mặc định của shop
+            shop_id: '26800027', // ID mặc định của shop
             channel: 'social-media',
             source: {
                 type: 'shop',
-                location_id: '12345678',
+                location_id: '26800027',
                 address: {
-                    province_id: '79', // TPHCM
-                    district_id: '760', // Quận 1
-                    ward_code: '26734', // Phường Bến Nghé
+                    province_id: '79',
+                    district_id: '760',
+                    ward_code: '26734',
                     street: 'Lê Lợi',
                     house_number: '68'
                 }
